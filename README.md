@@ -13,7 +13,6 @@ Not an official Cleanlab project, see [Relationship to cleanlab/tlm](#relationsh
 Worth knowing about:
 - [docs/SCORING.md](docs/SCORING.md) explains what the trust score actually measures in a given configuration: how the five sub-scores are weighted and renormalized, the six criteria the judge model is asked to apply, and what each `quality_preset` catches or misses. Read this before tuning thresholds or changing presets.
 - [scripts/calibrate.py](scripts/calibrate.py) runs a question set through the wrapper and, once you have labelled the answers, sweeps candidate thresholds and reports precision/recall plus the count of wrong answers that would be shown as trustworthy. The trust labels this repo ships are still provisional guesses, so if you are deciding whether the scores are good enough for your own use, start here. See [scripts/README.md](scripts/README.md).
-- [docs/JOURNAL.md](docs/JOURNAL.md) is the full investigation history (bugs found, models tested and why, benchmarks).
 
 ## Using the wrapper
 
@@ -72,7 +71,7 @@ curl -X POST http://localhost:8000/chat \
   -d '{"question": "How long should I rest between squat sets?", "quality_preset": "medium"}'
 ```
 
-A scored request takes roughly 60-90s at `quality_preset=medium` (more at `high`). This is a full-local tradeoff, not a bug; see the journal for why.
+A scored request takes roughly 60-90s at `quality_preset=medium` (more at `high`). This is a full-local tradeoff, not a bug.
 
 ## Configuration
 
@@ -87,7 +86,7 @@ Everything lives in `.env` (copy `env.example` to start). No API key required an
 
 `SYSTEM_PROMPT` is specific to the showcase app (`backend/`), not the wrapper: it sets the chatbot's persona/topic. `env.example` ships this repo's demo persona (a sport/fitness coach) as a working example; replace it with anything, or delete the line for a plain generic assistant.
 
-`OLLAMA_NUM_PARALLEL=4` (set when starting `ollama serve`, not in `.env`) matters a lot for latency: without it, a scored request can take 2-3x longer. See the journal for why.
+`OLLAMA_NUM_PARALLEL=4` (set when starting `ollama serve`, not in `.env`) matters a lot for latency: without it, a scored request can take 2-3x longer, because Ollama processes one request at a time per loaded model by default, which serializes the six judge calls `tlm` sends concurrently.
 
 ## Relationship to `cleanlab/tlm`
 

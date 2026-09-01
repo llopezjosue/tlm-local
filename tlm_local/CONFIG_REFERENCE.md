@@ -56,8 +56,7 @@ see below):
 
 Measured on this project's hardware/models: `medium` ~59-90s per scored answer,
 `high` ~94-179s, and `high` recalibrates scores rather than just adding strictness
-(a genuinely good answer measured here dropped from ~0.9 to ~0.72). Full story in
-`../docs/JOURNAL.md`.
+(a genuinely good answer measured here dropped from ~0.9 to ~0.72).
 
 ## `reasoning_effort` (`ReasoningEffort`: `none`\|`low`\|`medium`\|`high`, default `None`)
 

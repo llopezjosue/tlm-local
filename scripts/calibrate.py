@@ -99,7 +99,7 @@ def sweep(correct: list[float], incorrect: list[float]) -> list[dict]:
     """Precision, recall and false negatives for calling an answer reliable at each cut-off.
 
     The false-negative count (a wrong answer shown as trustworthy) is the number
-    the journal's two documented failures are about, so it gets its own column.
+    this project's two known failures are about, so it gets its own column.
     """
     rows = []
     for cut in SWEEP_GRID:

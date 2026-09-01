@@ -33,8 +33,8 @@ rather than run on an empty set if the layout changes.
 The sweep prints, for each cut-off from 0.05 to 0.95, how many correct answers
 would be called reliable (`ok`) and how many **incorrect** ones would be
 (`bad`), plus precision, recall and F1. `bad` is the column that matters most:
-it counts wrong answers a user would be told to trust, which is the failure mode
-the two cases in `docs/JOURNAL.md` are about.
+it counts wrong answers a user would be told to trust, the failure mode this
+project has already hit twice in practice.
 
 The recommendation minimizes `bad` first, then takes the best F1, then the
 lowest cut-off so recall is not given away for nothing. The lower threshold is

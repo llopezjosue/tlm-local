@@ -32,7 +32,7 @@ from .errors import (
 logger = logging.getLogger(__name__)
 
 # tlm's own five presets. Only "medium" and "high" have been measured on this
-# project's hardware/models - see docs/JOURNAL.md in the main repo:
+# project's hardware/models:
 #   medium: self-reflection only, ~59-90s per scored answer (this project's default)
 #   high:   + consistency-sampling (4 completions), ~94-179s, AND recalibrates
 #           scores rather than just adding strictness - a genuinely good

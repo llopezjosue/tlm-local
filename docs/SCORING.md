@@ -54,9 +54,8 @@ survive, summing to 0.67, so 0.47/0.67 = 70 % and 0.20/0.67 = 30 %.
 
 ### Verified against this project's own data
 
-The A/B test recorded in [JOURNAL.md](JOURNAL.md) (section "Perplexity: implemented and
-validated") measured the following on a fixed answer whose self-reflection score was
-1.0:
+An A/B test run on this project measured the following on a fixed answer whose
+self-reflection score was 1.0:
 
 | Injected perplexity | Measured `trust_score` | Predicted by the formula |
 |---|---|---|
@@ -104,9 +103,10 @@ Details that matter for interpretation:
 All 6 angles interrogate the same model. On a **systematic error** (the generator is
 wrong in the same way with the same confidence every time), the 6 prompts reproduce the
 same misjudgement 6 times, and averaging corrects nothing. This is exactly the false
-negative documented in [JOURNAL.md](JOURNAL.md) (section "Finding a genuine false
-negative"), and it explains why moving the judge up to `qwen2.5:14b` fixed it while
-sampling more would not.
+negative this project hit in practice: an answer whose headline figure was plausible,
+but whose very next sentence confused grams with kilograms, still scored 0.842,
+"Reliable". It also explains why moving the judge up to `qwen2.5:14b` caught it
+(0.342, "Unreliable") while sampling more would not.
 
 ## Config by config
 
@@ -138,7 +138,7 @@ unchanged (`tlm/config/presets.py:127-128`).
   from 70 % down to 47 %, and 33 % of the score shifts onto a different question ("does
   the model answer the same way if you run it again?"). A correct but freely worded
   answer can therefore lose points without any error having been detected. This is the
-  origin of the 0.9 to 0.72 drop recorded in the journal.
+  origin of the 0.9 to 0.72 drop measured on this project.
 - **Practical consequence**: adopting `high` means recalibrating the `label_for_score()`
   thresholds, not just accepting more latency. The current thresholds (0.8 / 0.5) are
   tuned against a 70/30 composition that no longer exists at `high`.
@@ -168,7 +168,7 @@ Verified field by field:
 
 In other words, choosing `base` or `low` over `medium` changes neither the score nor the
 cost. On the same input, any gap observed between these three presets is run-to-run
-variance, not a preset effect. That is consistent with the journal's measurements, where
+variance, not a preset effect. That is consistent with the measurements taken here, where
 `base` and `low` both return exactly 1.0.
 
 Worth noting, to remove an ambiguity: `ObservedConsistencyCompletionGenerator` is added
@@ -301,7 +301,3 @@ in the required format", and `trust_score` alone cannot distinguish them.
 
 - [`tlm_local/CONFIG_REFERENCE.md`](../tlm_local/CONFIG_REFERENCE.md): `tlm`'s 17
   parameters, one by one, with their real defaults.
-- [`JOURNAL.md`](JOURNAL.md): the investigation history, models tested, benchmarks.
-  Note: the conclusion in the section "What we understood about what our score really
-  measures" ("only `self_reflection_score` contributes") predates the perplexity work
-  described later in the same file. The up-to-date composition is the one on this page.

@@ -7,8 +7,7 @@ real data rather than the provisional values set in Phase 2 (`>=0.8` / `>=0.5`).
 20 questions, within the demo persona's domain (sports coach): 15 verifiable factual
 ones, 5 deliberate traps designed to expose overconfidence in the small generator model
 (false precision, myth, unrealistic goal, obscure fact, confused terminology). Results
-(score, latency, preset) get filled into the table below as the real runs happen. See
-`logs/scores.jsonl` for the raw detail of every call.
+(score, latency, preset) get filled into the table below as the real runs happen.
 
 ## Factual questions
 
@@ -43,7 +42,7 @@ ones, 5 deliberate traps designed to expose overconfidence in the small generato
 ## Results
 
 Still empty: the batch was started once at `quality_preset=medium` and stopped after
-3/20 questions, and has not been re-run. See [JOURNAL.md](JOURNAL.md).
+3/20 questions, and has not been re-run.
 
 Run it with the calibration harness, which carries this same question set as its default
 and does the threshold sweep this phase exists for:
