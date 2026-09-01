@@ -1,0 +1,17 @@
+# Same settings as tlm_local/pyproject.toml. Repeated here because ruff
+# resolves config from the checked file's own directory upwards, and the repo
+# root carries none - so without this file `ruff check scripts/` would silently
+# apply ruff's defaults (line-length 88, E4/E7/E9/F only) instead of the
+# project's convention.
+line-length = 120
+target-version = "py310"
+
+[lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[lint.per-file-ignores]
+# Import order inside calibrate.py's run() is deliberate, not accidental:
+# tlm_local has to load .env before app.config reads SYSTEM_PROMPT out of the
+# environment. Sorting them alphabetically would put app first and silently
+# break the persona. Same reason tlm_local/pyproject.toml ignores I001.
+"calibrate.py" = ["I001"]
