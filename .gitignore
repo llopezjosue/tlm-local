@@ -7,6 +7,9 @@
 # Local working guidance for Claude Code, not part of the deliverable.
 CLAUDE.md
 
+# Investigation history, kept local.
+docs/JOURNAL.md
+
 # Python bytecode, tool caches, build artifacts
 __pycache__/
 *.py[cod]
