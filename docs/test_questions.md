@@ -48,9 +48,9 @@ Run it with the calibration harness, which carries this same question set as its
 and does the threshold sweep this phase exists for:
 
 ```bash
-python scripts/calibrate.py --preset medium --preset high --out docs/phase4_results.jsonl
+python scripts/calibrate.py run --preset medium --preset high --out logs/calibration.jsonl
 # annotate the `correct` field in that file by hand, then:
-python scripts/calibrate.py --analyze docs/phase4_results.jsonl
+python scripts/calibrate.py analyze logs/calibration.jsonl
 ```
 
 See [`scripts/README.md`](../scripts/README.md) for the annotation workflow and how the

@@ -22,7 +22,7 @@ the only fields genuinely not applicable to this wrapper's local-only, BYOK-free
 | Parameter | Where | Values | Default | What it does | Status here |
 |---|---|---|---|---|---|
 | `quality_preset` | `Config` | `base`\|`low`\|`medium`\|`high`\|`best` | `medium` | Speed vs scoring depth | Exposed, named parameter (default `medium`) |
-| `reasoning_effort` | `Config` | `none`\|`low`\|`medium`\|`high` | `None`, resolved to `none` for QA | Max explanation word count (0/50/125/375), **and** switches the judge prompt to a variant that reasons before scoring, see caveat below | Exposed, named parameter; `explanation` still not surfaced in `ScoreResult` |
+| `reasoning_effort` | `Config` | `none`\|`low`\|`medium`\|`high` | `None`, resolved to `none` for QA | Max explanation word count (0/50/125/375), **and** switches the judge prompt to a variant that reasons before scoring, see caveat below | Exposed, named parameter; `explanation` is carried on `ScoreResult` and displayed by the showcase app |
 | `similarity_measure` | `Config` | `jaccard`\|`embedding_small`\|`embedding_large`\|`code`\|`statement` | `None` (auto per workflow) | How `consistency` compares alternate answers | Exposed, named parameter; no-op while consistency=0 (i.e. below `quality_preset=high`) |
 | `constrain_outputs` | `Config` | `list[str]` \| `None` | `None` | Restricts outputs (multiple-choice/classification) | Exposed, named parameter; not applicable to a QA workflow |
 | `num_reference_completions` | `Config` | `int` \| `None` | preset-derived | Completions generated (generator role, `.create()` only) | Exposed via `**advanced_tlm_config` |
@@ -79,12 +79,11 @@ except `STRUCTURED_OUTPUT_SCORING`, and no preset overrides it (`low`/`base` set
 under every `quality_preset`. See [`../docs/SCORING.md`](../docs/SCORING.md) for why
 this is the cheapest untested lever on this project.
 
-Exposed as `score(..., reasoning_effort=...)`, but note `LocalTLM`'s `ScoreResult` only
-extracts `trustworthiness_score` from `tlm`'s `InferenceResult` today; the full
-`InferenceResult` (including `explanation`) is available on `ScoreResult.raw` for any
-caller that wants it, but neither the backend showcase nor the frontend currently read
-or display it. Tuning this has zero visible effect until something downstream consumes
-`explanation`.
+Exposed as `score(..., reasoning_effort=...)`. `ScoreResult` carries `explanation`
+alongside `trust_score`, the showcase backend returns it, and the frontend shows it
+under "Why this score?" on any answer below tlm's 0.8 threshold, so raising this value
+has a directly visible effect. The full `InferenceResult` remains available on
+`ScoreResult.raw` for anything else.
 
 ## `similarity_measure` (`SimilarityMeasure`: `jaccard`\|`embedding_small`\|`embedding_large`\|`code`\|`statement`, default `None`)
 
