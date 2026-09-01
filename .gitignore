@@ -1,0 +1,22 @@
+# Virtualenv. Rebuilt from requirements.txt, see the README.
+.venv/
+
+# Local configuration. Copy env.example to .env instead; never commit it.
+.env
+
+# Local working guidance for Claude Code, not part of the deliverable.
+CLAUDE.md
+
+# Python bytecode, tool caches, build artifacts
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+
+# Runtime output: the backend appends one line per scored request, and
+# scripts/README.md is explicit that no results are committed.
+logs/
+
+# macOS
+.DS_Store
