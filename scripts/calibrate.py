@@ -152,12 +152,21 @@ def analyze(path: Path) -> None:
         best = min(clean, key=lambda r: (-r["f1"], r["cut"])) if clean else max(table, key=lambda r: r["f1"])
         # The lower cut-off has to sit at or below the weakest correct answer, so
         # no answer known to be right lands in the bottom bucket. Nearest grid
-        # point is not enough: rounding up would strand it there.
-        below = [c for c in SWEEP_GRID if c <= min(correct)]
+        # point is not enough: rounding up would strand it there. It also has to
+        # stay at or below the reliable cut-off: the two are computed from
+        # different quantities and cleanly separated scores push them past each
+        # other, which would leave "needs checking" as an unreachable band and
+        # label every score above the floor reliable on no evidence.
+        below = [c for c in SWEEP_GRID if c <= min(min(correct), best["cut"])]
         floor = max(below) if below else SWEEP_GRID[0]
         print(f"\nrecommended: reliable >= {best['cut']:.2f}, needs_checking >= {floor:.2f}")
         if not below:
             print(f"A correct answer scored {min(correct):.2f}, below the sweep grid; no floor keeps it out.")
+        elif floor == best["cut"]:
+            print(
+                "Correct and incorrect scores are cleanly separated here, so no middle band "
+                "survives: these two thresholds collapse the three labels into two."
+            )
         if not clean:
             print("No cut-off keeps every wrong answer out of the reliable bucket; showing best F1 instead.")
         print("Current values live in backend/app/config.py (TRUST_THRESHOLDS).")
