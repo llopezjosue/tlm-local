@@ -6,7 +6,7 @@ build-backend = "hatchling.build"
 name = "tlm-local"
 version = "0.1.0"
 description = "A small wrapper around cleanlab/tlm that fixes the rough edges of running it fully locally against Ollama"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 dependencies = [
     "trustworthy-llm>=0.0.3",
     "litellm>=1.77.2",
@@ -34,7 +34,7 @@ testpaths = ["tests"]
 
 [tool.ruff]
 line-length = 120
-target-version = "py310"
+target-version = "py311"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]

@@ -46,8 +46,10 @@ OLLAMA_NUM_PARALLEL=4 ollama serve &      # macOS/Linux (bash/zsh)
 ollama pull ministral-3:3b
 ollama pull qwen2.5:7b
 
-# 4. Python environment (installs tlm_local in editable mode, plus FastAPI/uvicorn)
-python3 -m venv .venv
+# 4. Python environment. 3.11 is the floor: litellm imports `typing.NotRequired`,
+#    which only exists from 3.11 on. Installs tlm_local in editable mode, plus
+#    FastAPI/uvicorn.
+python3.11 -m venv .venv
 source .venv/bin/activate    # macOS/Linux
 # .venv\Scripts\activate     # Windows
 pip install -r requirements.txt
