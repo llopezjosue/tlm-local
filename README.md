@@ -1,8 +1,10 @@
-# reliable-chat
+# tlm-local
 
-A Python wrapper for running [`cleanlab/tlm`](https://github.com/cleanlab/tlm) fully locally against [Ollama](https://ollama.com): no API key, no external network call, no Cleanlab account. `tlm` is an open-source trustworthiness-scoring library; getting it to work correctly and safely against local models surfaced several real, non-obvious pitfalls (silent crashes, wrong configuration, missing scoring signals) that this wrapper fixes.
+A Python wrapper for running [`cleanlab/tlm`](https://github.com/cleanlab/tlm)'s trustworthiness scoring fully locally against [Ollama](https://ollama.com): no API key, no external network call, no Cleanlab account. `tlm` is an open-source library; getting it to work correctly and safely against local models surfaced several real, non-obvious pitfalls (silent crashes, wrong configuration, missing scoring signals) that this wrapper fixes.
 
 That "no external network call" is enforced, not just intended. Left to itself, `tlm` falls back to a hosted `gpt-4.1-mini` judge with an `api_key` taken from `OPENAI_API_KEY`, so a misplaced `.env` silently ships your prompts and answers to OpenAI instead of failing. `LocalTLM` checks the judge model `tlm` actually resolved at construction and raises rather than let that happen. See pitfall 1 in [the package README](tlm_local/README.md).
+
+**What this covers, so the name does not overpromise.** `tlm`'s QA scoring path: score an answer you already have, or generate and score in one call. Not all of `tlm`. Its RAG scoring and custom `evals` are broken upstream in `trustworthy-llm==0.0.3`, and raise a typed error here rather than failing obscurely; the classification, binary-classification and structured-output workflows are not wrapped, and neither is `TLM.create()`. The full list is in [Known limitations](tlm_local/README.md#known-limitations-not-yet-fixed).
 
 The repo has two parts:
 - **[`tlm_local/`](tlm_local/)**, the actual deliverable: a standalone, separately-installable Python package that wraps `tlm` and fixes everything needed to run it safely against Ollama. See [its README](tlm_local/README.md) for the full list of pitfalls it handles. No knowledge of chatbots or any topic, fully reusable on its own, in any project.
