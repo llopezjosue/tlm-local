@@ -1,0 +1,48 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "tlm-local"
+version = "0.1.0"
+description = "A small wrapper around cleanlab/tlm that fixes the rough edges of running it fully locally against Ollama"
+requires-python = ">=3.10"
+dependencies = [
+    "trustworthy-llm>=0.0.3",
+    "litellm>=1.77.2",
+    "python-dotenv>=1.0.1",
+    # Imported directly in errors.py/client.py for APIError - only present
+    # transitively via litellm otherwise, declared explicitly since we rely
+    # on it ourselves (see the openai.APIError vs litellm.exceptions.APIError
+    # gotcha documented in errors.py).
+    "openai>=1.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3.3",
+    "pytest-asyncio>=0.24.0",
+    "ruff>=0.7.2",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["tlm_local"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.ruff.lint.per-file-ignores]
+# Import order in these two files is deliberate, not accidental: .config
+# must run its .env-loading side effect before tlm is ever imported, or tlm
+# caches the wrong settings for the rest of the process. See config.py's
+# docstring.
+"tlm_local/__init__.py" = ["I001", "E402"]
+"tlm_local/client.py" = ["I001"]
