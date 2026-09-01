@@ -30,7 +30,17 @@ logger = logging.getLogger("reliable_chat")
 app = FastAPI(title="reliable-chat")
 tlm_client = LocalTLM()
 
-DEFAULT_QUALITY_PRESET = "medium"
+# The wrapper already reads TLM_QUALITY_PRESET from the environment, so the
+# app's default is whatever it resolved; a request can still override it per
+# call. Validated at import rather than per request: a preset this app does not
+# serve would otherwise turn every single call into a 400, whereas failing at
+# startup names the problem once, at the moment someone can fix it.
+DEFAULT_QUALITY_PRESET = tlm_client.config.quality_preset
+if DEFAULT_QUALITY_PRESET not in VALIDATED_QUALITY_PRESETS:
+    raise RuntimeError(
+        f"TLM_QUALITY_PRESET is {DEFAULT_QUALITY_PRESET!r}, which this app does not serve. "
+        f"Set it to one of: {', '.join(VALIDATED_QUALITY_PRESETS)}."
+    )
 
 REASONING_EFFORTS = tuple(effort.value for effort in ReasoningEffort)
 # embedding_small and embedding_large are excluded on purpose: they are the one
