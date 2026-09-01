@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>reliable-chat: local assistant with a trust score</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="app-header">
+    <h1>reliable-chat</h1>
+    <p>A local assistant, with a trust score on every answer.</p>
+  </header>
+
+  <main class="chat-shell">
+    <div class="mode-row">
+      <label for="quality-preset">Scoring depth</label>
+      <select id="quality-preset">
+        <option value="medium" selected>Fast: self-reflection only (~60-90s)</option>
+        <option value="high">Thorough: + consistency (~95-180s, stricter score)</option>
+      </select>
+    </div>
+
+    <div id="messages" class="messages" aria-live="polite"></div>
+
+    <form id="chat-form" class="composer">
+      <input
+        id="question-input"
+        type="text"
+        placeholder="Ask your question..."
+        autocomplete="off"
+        required
+      />
+      <button type="submit" id="send-button">Send</button>
+    </form>
+
+    <p class="latency-note">
+      Everything runs locally (Ollama). A scored answer can take 1 to 2 minutes.
+    </p>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
