@@ -1,12 +1,16 @@
-"""Calibrate the trust-label thresholds against a real question set.
+"""Derive trust-label thresholds for your own configuration.
 
 Two steps, because the middle one is yours. `run` scores every question and
 writes a JSONL with `correct` left null; you label the answers by hand; then
 `analyze` sweeps candidate cut-offs and tells you where to put them.
 
-The thresholds in backend/app/config.py are provisional guesses. This is how to
-replace them with measured ones. Expect roughly an hour per preset for 20
-questions.
+A threshold is not a property of this project, it is a property of a
+configuration: the generator, the judge, the quality_preset and
+reasoning_effort, evaluated on your questions in your domain. Change any of
+them and the numbers move, so no useful threshold can be shipped for you. The
+values in backend/app/config.py are placeholders that let the demo render a
+badge. This is how you replace them with your own. See docs/SCORING.md for why
+each of those axes moves the score.
 
     python scripts/calibrate.py run --preset medium --out logs/calib.jsonl
     # edit the "correct" field in each row: true, false, or null if unclear
@@ -61,6 +65,16 @@ async def run(presets: list[str], out: Path) -> None:
 
     with out.open("a", encoding="utf-8") as handle:
         for preset in presets:
+            # Stamped on every row. A threshold belongs to a configuration, not
+            # to a preset, so a file that does not say which generator and which
+            # judge produced it cannot be read back six months later - or worse,
+            # can be read back wrongly.
+            config = {
+                "preset": preset,
+                "generator": client.config.generator_model,
+                "judge": client.config.judge_model,
+                "reasoning_effort": client.config.reasoning_effort,
+            }
             for question in questions:
                 done += 1
                 began = time.monotonic()
@@ -72,14 +86,14 @@ async def run(presets: list[str], out: Path) -> None:
                         "correct": None,  # first key on the line: this is what you edit
                         "id": question["id"],
                         "category": question["category"],
-                        "preset": preset,
+                        **config,
                         "question": question["question"],
                         "answer": generation.answer,
                         "trust_score": score.trust_score,
                         "duration_s": round(time.monotonic() - began, 1),
                     }
                 except Exception as error:  # noqa: BLE001  one bad question must not lose the batch
-                    row = {"correct": None, "id": question["id"], "preset": preset, "error": str(error)}
+                    row = {"correct": None, "id": question["id"], **config, "error": str(error)}
                 handle.write(json.dumps(row, ensure_ascii=False) + "\n")
                 handle.flush()
                 elapsed = time.monotonic() - started
@@ -120,12 +134,22 @@ def analyze(path: Path) -> None:
     if not scored:
         sys.exit(f"No scored rows in {path}.")
 
-    for preset in sorted({r["preset"] for r in scored}):
-        group = [r for r in scored if r["preset"] == preset]
+    def configuration(row: dict) -> tuple:
+        return (
+            row.get("preset", "?"),
+            row.get("generator", "?"),
+            row.get("judge", "?"),
+            row.get("reasoning_effort"),
+        )
+
+    # Grouped by the whole configuration rather than by preset: two judges swept
+    # together would average into a threshold that is right for neither.
+    for preset, generator, judge, effort in sorted({configuration(r) for r in scored}):
+        group = [r for r in scored if configuration(r) == (preset, generator, judge, effort)]
         correct = [r["trust_score"] for r in group if r.get("correct") is True]
         incorrect = [r["trust_score"] for r in group if r.get("correct") is False]
 
-        print(f"\n=== preset={preset} ===")
+        print(f"\n=== preset={preset} generator={generator} judge={judge} reasoning_effort={effort} ===")
         print(
             f"{len(group)} scored, {len(correct)} correct, {len(incorrect)} incorrect, "
             f"{len(group) - len(correct) - len(incorrect)} unlabelled"
@@ -166,7 +190,8 @@ def analyze(path: Path) -> None:
         if not clean:
             print("No cut-off keeps every wrong answer out of the reliable bucket; showing best F1 instead.")
         print("Current values live in backend/app/config.py (TRUST_THRESHOLDS).")
-        print("Thresholds do not transfer between presets: see docs/SCORING.md.")
+        print("These hold for this configuration only. Changing the judge, the generator,")
+        print("the preset or reasoning_effort means calibrating again: see docs/SCORING.md.")
 
 
 def main() -> None:
