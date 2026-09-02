@@ -99,16 +99,27 @@ How long a scored request takes is a property of your hardware, not of this code
 
 ## Configuration
 
-Everything lives in `.env` (copy `env.example` to start). No API key required anywhere. Read directly by `tlm_local`, so this applies whether you're running the showcase app or using the wrapper standalone in your own project:
+Everything lives in `.env` (copy `env.example` to start). No API key required anywhere.
+
+Read by the `tlm_local` package, so these apply whether you run the showcase app or import the wrapper into your own project:
 
 | Variable | Default | What it does |
 |---|---|---|
 | `OLLAMA_API_BASE` | `http://localhost:11434` | Where your local Ollama server is running. |
 | `GENERATOR_MODEL` | `ollama/ministral-3:3b` | Model that produces chat answers. |
-| `DEFAULT_MODEL` | `ollama/qwen2.5:7b` | Model `tlm` uses as judge (self-reflection/consistency). Must be set before the process starts: `tlm` caches it on first import. |
-| `TLM_QUALITY_PRESET` | `medium` | Scoring depth: `medium` (self-reflection + perplexity) or `high` (adds consistency-sampling, more latency, stricter/recalibrated scores). Overridable per-call in the wrapper, or per-request in the showcase app (chat UI dropdown / API's `quality_preset` field). |
+| `DEFAULT_MODEL` | `ollama/qwen2.5:7b` | Model `tlm` uses as judge. Must be set before the process starts: `tlm` caches it on first import, and falls back to a hosted model when it sees nothing, which `LocalTLM` refuses to construct against. |
+| `TLM_QUALITY_PRESET` | `medium` | Scoring depth: `medium` is self-reflection plus perplexity, `high` and `best` add consistency sampling. `base` and `low` are identical to `medium`. Overridable per call, or per request in the showcase app. |
+| `TLM_REASONING_EFFORT` | unset (`none` for this workflow) | Whether the judge reasons before rating. Anything but `none` changes the prompt it receives, so it changes the score as well as the length of `explanation`. |
+| `TLM_SIMILARITY_MEASURE` | unset (`statement` for this workflow) | How the consistency signal compares alternate answers. Inert below `high`, since consistency runs no completions at `medium`. |
 
-`SYSTEM_PROMPT` is specific to the showcase app (`backend/`), not the wrapper: it sets the chatbot's persona/topic. `env.example` ships this repo's demo persona (a sport/fitness coach) as a working example; replace it with anything, or delete the line for a plain generic assistant.
+Read by the showcase app only:
+
+| Variable | Default | What it does |
+|---|---|---|
+| `SYSTEM_PROMPT` | a generic assistant | The chatbot's persona and topic. `env.example` ships this repo's demo coach as a working example; replace it, or delete the line. It reaches the judge as well as the generator. |
+| `MAX_CONCURRENT_CHATS` | `1` | How many scored requests run at once; the rest queue. One request already fans out to about seven concurrent Ollama calls, so raising this without raising `OLLAMA_NUM_PARALLEL` only moves the contention. |
+| `MAX_QUESTION_CHARS` | `4000` | Upper bound on a question's length. It is not sent once: it goes to the generator, then into each of the six judge prompts. |
+| `MAX_TOKENS_LIMIT` | `4096` | Upper bound on a request's `max_tokens`. All six judge calls re-read the answer, so its length is multiplied through the scoring pass. |
 
 `OLLAMA_NUM_PARALLEL` (set when starting `ollama serve`, not in `.env`) is worth understanding before copying a number from anywhere, this README included. Ollama serves one request at a time per loaded model by default, which serializes the six judge calls `tlm` sends concurrently.
 

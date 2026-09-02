@@ -80,7 +80,7 @@ def _mean_token_probability(raw_response: dict) -> float | None:
     Not a perplexity, and deliberately so: tlm's field of that name wants a
     probability in [0, 1], matching what it computes for its own completions
     (tlm/utils/parse_utils.py:145-161). Passing a real perplexity would be the
-    wrong scale, silently. docs/SCORING.md has the derivation.
+    wrong scale, silently. docs/SCORING.md says which of the two it wants.
 
     None when the response carries no logprobs, which tlm renormalizes around
     rather than penalizing.
