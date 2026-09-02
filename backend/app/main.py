@@ -25,8 +25,15 @@ from tlm_local import (
 from app.config import LOG_FILE, MAX_CONCURRENT_CHATS, MAX_TOKENS_LIMIT, REPO_ROOT, label_for_score
 from app.generator import build_messages
 
-logging.basicConfig(level=logging.INFO)
+# Root stays at WARNING on purpose: tlm logs the full message payload of every
+# judge call at INFO - the user's question and the model's answer, six times per
+# scored request - so configuring the root logger at INFO puts all of it on
+# stderr, and from there into journald, container logs or CI output. Only this
+# app's own logger is raised. docs/SCORING.md's sub-score recipe is unaffected:
+# it opts one tlm logger in by name.
+logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger("reliable_chat")
+logger.setLevel(logging.INFO)
 
 app = FastAPI(title="reliable-chat")
 tlm_client = LocalTLM()
