@@ -3,7 +3,7 @@
 The input `scripts/calibrate.py` reads by default, and a worked example of what a
 calibration set needs to contain. It is **not** a benchmark, and the thresholds it
 would produce are not yours: it sits in the demo persona's domain, so calibrating
-for your own means replacing these questions with your own. `docs/SCORING.md`
+for your own means replacing these questions with your own. `../docs/SCORING.md`
 explains why the domain moves the numbers.
 
 20 questions for a sports coach: 15 verifiable factual ones, and 5 deliberate traps,

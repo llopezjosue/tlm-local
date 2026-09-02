@@ -1,8 +1,8 @@
 """LocalTLM: a thin async-safe wrapper around cleanlab/tlm's TLM class,
 fixing every pitfall found running it against a local Ollama server, and
 exposing tlm's full Config surface (not just quality_preset). See the
-package README for the pitfalls, and CONFIG_REFERENCE.md for what each `tlm`
-parameter actually does.
+package README for the pitfalls, and CONFIG_REFERENCE.md for which `tlm`
+parameters are inert or broken.
 """
 
 from __future__ import annotations
@@ -38,7 +38,7 @@ VALIDATED_QUALITY_PRESETS = ("medium", "high")
 
 # Config fields quality_preset normally derives, reachable through score()'s
 # **advanced_tlm_config. An allowlist rather than a passthrough so a typo fails
-# here, not inside tlm's pydantic validation. CONFIG_REFERENCE.md covers each.
+# here, not inside tlm's pydantic validation. CONFIG_REFERENCE.md flags the traps.
 ADVANCED_CONFIG_FIELDS = frozenset(
     {
         "num_reference_completions",
@@ -216,7 +216,7 @@ class LocalTLM:
         scoring depths. **advanced_tlm_config reaches the lower-level Config
         fields in ADVANCED_CONFIG_FIELDS; an unknown key raises ValueError
         before any network call. CONFIG_REFERENCE.md documents every
-        parameter, including the ones inert outside certain presets.
+        parameter that is inert or broken.
 
         Raises EvalsNotSupportedError, RagNotSupportedError or
         JudgeCallFailedError on the three upstream defects; see their

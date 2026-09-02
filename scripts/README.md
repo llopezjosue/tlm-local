@@ -25,7 +25,7 @@ python scripts/calibrate.py analyze logs/calib.jsonl
 
 Needs Ollama running for step 1, same as the app. Step 3 needs nothing.
 
-The questions come from `docs/test_questions.md`, parsed out of its two markdown
+The questions come from `questions.md` next to this file, parsed out of its two markdown
 tables, so there is a single source of truth for the test set. Edit that file to
 change the questions. The parser is coupled to the table layout, and will say so
 rather than run on an empty set if the layout changes.

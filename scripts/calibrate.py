@@ -28,11 +28,11 @@ import time
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-QUESTIONS_FILE = REPO_ROOT / "docs" / "test_questions.md"
+QUESTIONS_FILE = Path(__file__).resolve().parent / "questions.md"
 SWEEP_GRID = [round(0.05 * n, 2) for n in range(1, 20)]
 
-# Parsed from docs/test_questions.md so the test set has one source of truth;
-# the price is coupling to that file's table layout.
+# Parsed from questions.md so the set has one source of truth; the price is
+# coupling to that file's table layout.
 ROW = re.compile(r"^\|\s*(\d+)\s*\|\s*(.+?)\s*\|")
 
 

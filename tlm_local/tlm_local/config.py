@@ -38,7 +38,7 @@ class LocalTLMConfig:
     """Immutable configuration for a `LocalTLM` instance. Every field falls
     back to an environment variable if not passed explicitly; see
     ../env.example at the repo root for a documented .env template and
-    CONFIG_REFERENCE.md for what each tlm-level setting actually does.
+    CONFIG_REFERENCE.md for the tlm settings that are inert or broken.
     """
 
     ollama_api_base: str = field(default_factory=lambda: os.environ.get("OLLAMA_API_BASE", "http://localhost:11434"))
