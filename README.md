@@ -37,12 +37,11 @@ Install it into your own project with `pip install -e ./tlm_local` (or point at 
 Exercises the wrapper end-to-end with a real chat UI and a trust badge on every answer.
 
 ```bash
-# 1. Install Ollama: https://ollama.com/download (macOS, Windows, Linux),
-#    or `brew install ollama` on macOS/Linux with Homebrew.
+# 1. Install Ollama: https://ollama.com/download
 
-# 2. Start it with OLLAMA_NUM_PARALLEL=4 set (see Configuration below for why)
-OLLAMA_NUM_PARALLEL=4 ollama serve &      # macOS/Linux (bash/zsh)
-# $env:OLLAMA_NUM_PARALLEL=4; ollama serve  # Windows (PowerShell)
+# 2. Start it. See Configuration below for OLLAMA_NUM_PARALLEL, which is worth
+#    setting if an accelerator serves your models and worth leaving alone if not.
+ollama serve &
 
 # 3. Pull the two local models
 ollama pull ministral-3:3b
@@ -52,8 +51,8 @@ ollama pull qwen2.5:7b
 #    which only exists from 3.11 on. Installs tlm_local in editable mode, plus
 #    FastAPI/uvicorn.
 python3.11 -m venv .venv
-source .venv/bin/activate    # macOS/Linux
-# .venv\Scripts\activate     # Windows
+source .venv/bin/activate    # bash/zsh
+# .venv\Scripts\activate     # PowerShell
 pip install -r requirements.txt
 
 # 5. Configure
@@ -65,7 +64,7 @@ cd backend
 uvicorn app.main:app --port 8000 --reload
 ```
 
-On Apple Silicon, run Ollama natively rather than inside Docker: Docker Desktop on macOS runs in a Linux VM and can't reach the GPU through Metal, so inference is much slower. Not an issue on Linux/Windows setups without that constraint.
+If you run Ollama in a container, check it can actually reach your accelerator. A container that silently falls back to the CPU makes every scored request several times slower, and nothing reports it.
 
 Open **http://localhost:8000/** for the chat UI, or call the API directly:
 
@@ -75,7 +74,7 @@ curl -X POST http://localhost:8000/chat \
   -d '{"question": "How long should I rest between squat sets?", "quality_preset": "medium"}'
 ```
 
-A scored request takes roughly 60-90s at `quality_preset=medium` (more at `high`). This is a full-local tradeoff, not a bug.
+How long a scored request takes is a property of your hardware, not of this code: it is one generation plus six judge calls, all local. On a machine whose accelerator serves the models, roughly 60-90s at `quality_preset=medium`; on CPU alone, several minutes. `high` costs two to three times more either way. This is the full-local tradeoff, not a bug.
 
 ## Configuration
 
@@ -90,7 +89,9 @@ Everything lives in `.env` (copy `env.example` to start). No API key required an
 
 `SYSTEM_PROMPT` is specific to the showcase app (`backend/`), not the wrapper: it sets the chatbot's persona/topic. `env.example` ships this repo's demo persona (a sport/fitness coach) as a working example; replace it with anything, or delete the line for a plain generic assistant.
 
-`OLLAMA_NUM_PARALLEL=4` (set when starting `ollama serve`, not in `.env`) matters a lot for latency: without it, a scored request can take 2-3x longer, because Ollama processes one request at a time per loaded model by default, which serializes the six judge calls `tlm` sends concurrently.
+`OLLAMA_NUM_PARALLEL` (set when starting `ollama serve`, not in `.env`) is worth understanding before copying a number from anywhere, this README included. Ollama serves one request at a time per loaded model by default, which serializes the six judge calls `tlm` sends concurrently.
+
+Whether raising it helps depends on what is doing the work. Where an accelerator serves the model, it sits idle between those calls and raising the value fills the gap: measured here, a scored request went from 112-210s to about 60s at `OLLAMA_NUM_PARALLEL=4`. Where the CPU serves the model, a single inference already saturates the cores, so concurrent requests split the same compute and win nothing, while each one reserves its own KV cache. On a memory-tight machine that is a straight loss, and swapping during inference is far worse than waiting. Leave it alone, or try 2, and measure.
 
 ## Relationship to `cleanlab/tlm`
 

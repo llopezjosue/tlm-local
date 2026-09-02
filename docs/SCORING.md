@@ -130,7 +130,8 @@ but whose very next sentence confused grams with kilograms, still scored 0.842,
   generator hesitates at the token level.
 - **Misses**: systematic errors shared by generator and judge, and anything that is not
   a question of factual correctness.
-- **Measured cost**: roughly 59-90s per scored answer.
+- **Measured cost**: roughly 59-90s per scored answer on the accelerator-backed
+  machine these figures come from; several times that on CPU alone.
 
 ### `high` and `best`
 

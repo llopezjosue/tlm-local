@@ -16,8 +16,8 @@
     <div class="mode-row">
       <label for="quality-preset">Scoring depth</label>
       <select id="quality-preset">
-        <option value="medium" selected>Fast: self-reflection only (~60-90s)</option>
-        <option value="high">Thorough: + consistency (~95-180s, stricter score)</option>
+        <option value="medium" selected>Fast: self-reflection only</option>
+        <option value="high">Thorough: + consistency (2-3x slower, stricter score)</option>
       </select>
     </div>
 
@@ -35,7 +35,8 @@
     </form>
 
     <p class="latency-note">
-      Everything runs locally (Ollama). A scored answer can take 1 to 2 minutes.
+      Everything runs locally (Ollama). A scored answer takes from about a minute to
+      several, depending on the machine.
     </p>
   </main>
 

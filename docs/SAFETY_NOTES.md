@@ -62,9 +62,9 @@ timing out and taking whole scores down — but the failure mode moved rather th
 disappeared.
 
 Not fixed because a timeout needs a number, and the right number is not knowable without
-the calibration run: scored requests legitimately take 60-90s at `medium` and up to 180s
-at `high`, on hardware that has not been fixed yet. Guessing low would abort good
-requests.
+the calibration run: a scored request legitimately takes anywhere from about a minute to
+several, depending on whether an accelerator or the CPU serves the models, and the
+hardware has not been fixed yet. Guessing low would abort good requests.
 
 ## 4. Error handling depends on upstream strings that are not pinned
 
