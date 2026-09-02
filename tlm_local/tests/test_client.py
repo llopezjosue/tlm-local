@@ -63,15 +63,9 @@ class TestMeanTokenProbability:
 
 class TestLocalTLMScoreValidation:
     """Pre-flight validation in score() - runs before any network call, so
-    these fail fast and don't need Ollama running.
-
-    require_local_judge=False for the same reason as in
-    test_client_offline.py: LocalTLM now validates the resolved judge model
-    at construction, which depends on whether a .env was discoverable when
-    tlm was first imported. Without the opt-out these two would fail (not
-    skip) on any machine without one, which is every CI machine. What they
-    are about is score()'s argument validation, not the judge check, which
-    TestJudgeModelCheck covers directly.
+    these fail fast and need no Ollama. require_local_judge=False for the
+    reason the tlm_client fixture in test_client_offline.py gives; the judge
+    check itself is covered by TestJudgeModelCheck.
     """
 
     async def test_rejects_unknown_quality_preset(self):
