@@ -3,7 +3,7 @@ import socket
 import pytest
 
 from tlm_local import Eval, EvalsNotSupportedError, LocalTLM
-from tlm_local.client import KNOWN_QUALITY_PRESETS, _compute_perplexity
+from tlm_local.client import KNOWN_QUALITY_PRESETS, _mean_token_probability
 
 
 def _ollama_reachable(host: str = "localhost", port: int = 11434) -> bool:
@@ -17,13 +17,13 @@ def _ollama_reachable(host: str = "localhost", port: int = 11434) -> bool:
 requires_ollama = pytest.mark.skipif(not _ollama_reachable(), reason="Ollama server not reachable on localhost:11434")
 
 
-class TestComputePerplexity:
+class TestMeanTokenProbability:
     def test_returns_mean_token_probability_when_logprobs_present(self):
         # given - two tokens, both with logprob=0.0 (i.e. probability 1.0)
         raw_response = {"choices": [{"logprobs": {"content": [{"logprob": 0.0}, {"logprob": 0.0}]}}]}
 
         # when
-        result = _compute_perplexity(raw_response)
+        result = _mean_token_probability(raw_response)
 
         # then
         assert result == pytest.approx(1.0)
@@ -33,7 +33,7 @@ class TestComputePerplexity:
         raw_response = {"choices": [{"logprobs": {"content": [{"logprob": 0.0}, {"logprob": -1.0}]}}]}
 
         # when
-        result = _compute_perplexity(raw_response)
+        result = _mean_token_probability(raw_response)
 
         # then
         assert result == pytest.approx(0.6839, abs=1e-3)
@@ -44,21 +44,21 @@ class TestComputePerplexity:
         raw_response = {"choices": [{"logprobs": None}]}
 
         # when / then
-        assert _compute_perplexity(raw_response) is None
+        assert _mean_token_probability(raw_response) is None
 
     def test_returns_none_when_response_shape_is_unexpected(self):
         # given
         raw_response = {}
 
         # when / then
-        assert _compute_perplexity(raw_response) is None
+        assert _mean_token_probability(raw_response) is None
 
     def test_returns_none_when_content_list_is_empty(self):
         # given
         raw_response = {"choices": [{"logprobs": {"content": []}}]}
 
         # when / then
-        assert _compute_perplexity(raw_response) is None
+        assert _mean_token_probability(raw_response) is None
 
 
 class TestLocalTLMScoreValidation:

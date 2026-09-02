@@ -69,6 +69,8 @@ class Generation:
     answer: str
     messages: list[dict]
     raw_response: dict
+    # Named after tlm's field, which is a misnomer: it carries a mean token
+    # probability in [0, 1], not a perplexity. See _mean_token_probability.
     perplexity: float | None = None
     usage: dict | None = None  # prompt/completion/total token counts, from litellm
 
@@ -90,12 +92,23 @@ class ScoreResult:
     """
 
 
-def _compute_perplexity(raw_response: dict) -> float | None:
-    """Mean token probability (exp(logprob)) over the generated answer -
-    what we feed tlm as its "perplexity" signal. Only populated when the
-    completion actually carries per-token logprobs, which requires
-    generate()'s `openai` provider route (see its docstring); None
-    otherwise, and tlm's scoring math renormalizes over whatever signals
+def _mean_token_probability(raw_response: dict) -> float | None:
+    """Mean token probability, mean(exp(logprob)), over the generated answer.
+
+    Despite the name of the tlm field this feeds, a mean probability is
+    exactly what that field wants. tlm fills it for its own completions with
+    get_parsed_answer_tokens_confidence (tlm/utils/parse_utils.py:145-161),
+    which averages exp(logprob) per token and clips to 1.0, and the helper it
+    uses, _logprob_to_probability, is documented as converting "to probability
+    0-1 scale". A real perplexity is exp(-mean logprob), a value of at least 1,
+    and feeding one here would put the signal far outside the 0-1 range the
+    weighted average assumes - silently, since nothing validates it. The
+    misnomer is upstream; the value below was checked to match tlm's own
+    computation numerically.
+
+    Only populated when the completion actually carries per-token logprobs,
+    which requires generate()'s `openai` provider route (see its docstring);
+    None otherwise, and tlm's scoring math renormalizes over whatever signals
     are actually available rather than penalizing a missing one.
     """
     try:
@@ -168,7 +181,7 @@ class LocalTLM:
         OpenAI-compatible endpoint genuinely supports it (confirmed with
         real per-token data over raw HTTP). Real logprobs let us populate
         tlm's otherwise-unavailable perplexity signal (see
-        _compute_perplexity above and the package README's "Known
+        _mean_token_probability above and the package README's "Known
         limitations" section for the full story).
         """
         model = model or self.config.generator_model
@@ -195,7 +208,7 @@ class LocalTLM:
 
         raw_response = response.model_dump()
         answer = raw_response["choices"][0]["message"]["content"]
-        perplexity = _compute_perplexity(raw_response)
+        perplexity = _mean_token_probability(raw_response)
         logger.debug("generate: got %d chars, perplexity=%s", len(answer), perplexity)
         return Generation(
             answer=answer,

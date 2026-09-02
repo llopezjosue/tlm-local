@@ -33,6 +33,16 @@ covers the combinations. Everything below is verified against the installed
 | `indicator` | 0.01 |
 | `prompt_eval` | 0.00 |
 
+**`perplexity` is a misnomer upstream, and the distinction decides what you may
+feed it.** tlm fills that field for its own completions with
+`get_parsed_answer_tokens_confidence` (`tlm/utils/parse_utils.py:145-161`), which
+averages `exp(logprob)` per token and clips to 1.0, using a helper documented as
+converting "to probability 0-1 scale". The field therefore holds a **mean token
+probability in [0, 1]**. A real perplexity is `exp(-mean logprob)`, always at
+least 1, and supplying one would put the value far outside the range this
+weighted average assumes, with nothing to validate it. `tlm_local` supplies the
+mean probability, checked to match tlm's own computation numerically.
+
 Two fallbacks are what land us on this particular set of weights:
 
 1. **By workflow**: `COMPONENT_SCORE_WEIGHTS` only contains the keys `DEFAULT` and
