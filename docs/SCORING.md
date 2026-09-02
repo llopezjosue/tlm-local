@@ -252,6 +252,34 @@ preset tables and can suggest that `base`/`low` do something:
 `min_self_reflection_completions`, `min_consistency_completions` and
 `alternate_reference_temperature` are declared and read nowhere.
 
+## What a trust threshold belongs to
+
+Everything above is why this repository ships **no calibrated thresholds**, and why
+none would help you if it did.
+
+A cut-off like "0.8 means reliable" is not a property of `tlm`, of this wrapper, or
+of trustworthiness scoring in general. It is a property of one configuration
+measured on one set of questions. Five things move it, and the first two move it
+more than the preset everyone thinks of:
+
+| What you change | Why the score moves | Measured here |
+|---|---|---|
+| **The judge model** | It is the score. At `medium`, ~70 % of the number is this model's opinion, and a bigger model does not merely score higher, it discriminates differently | Two answers containing real errors scored 0.842 and 0.769 with `qwen2.5:7b`, and 0.342 and 0.525 with `qwen2.5:14b` |
+| **The generator model** | Perplexity is the generator's confidence in its own tokens, ~30 % of the score at `medium`. A different generator has a different confidence profile on the same answer | see the formula above |
+| **`quality_preset`** | It changes which signals exist, so the surviving weights are renormalized. Not added strictness, a different question | A good answer went from ~0.9 at `medium` to ~0.72 at `high` |
+| **`reasoning_effort`** | Anything but `none` sends the judge a prompt that reasons before rating, which changes its output distribution (caveat 1 above) | untested |
+| **Your questions and your domain** | The judge scores what it believes it knows. Its reliability is not uniform across subjects, so a threshold calibrated on one domain does not carry to another | — |
+
+So the values in `backend/app/config.py` are placeholders that let the demo render
+a badge, not measurements, and `docs/test_questions.md` ships an example question
+set matched to the example persona rather than a benchmark.
+
+Getting real numbers for **your** configuration is what
+[`scripts/calibrate.py`](../scripts/calibrate.py) is for; `scripts/README.md`
+covers the workflow. It records the whole configuration on every row and groups by
+it, so two judges swept out of one file do not average into a threshold that fits
+neither.
+
 ## Checking this yourself on a given answer
 
 **The per-signal sub-scores are not retrievable from the API.** They are computed, then

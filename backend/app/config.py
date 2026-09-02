@@ -31,9 +31,11 @@ MAX_QUESTION_CHARS = int(os.environ.get("MAX_QUESTION_CHARS", "4000"))
 DEFAULT_SYSTEM_PROMPT = "You are a helpful, honest and concise assistant."
 SYSTEM_PROMPT = os.environ.get("SYSTEM_PROMPT", DEFAULT_SYSTEM_PROMPT)
 
-# Provisional; scripts/calibrate.py replaces these with measured values. This
-# 0.8 is a presentation choice, unrelated to the 0.8 in frontend/app.js, which
-# is tlm's own EXPLAINABILITY_THRESHOLD - recalibrating here must not move it.
+# Placeholders, so the demo has a badge to render. They are not measurements and
+# no measurement would transfer: a threshold belongs to a generator, a judge, a
+# preset and a domain. scripts/calibrate.py derives them for yours, docs/SCORING.md
+# says why each axis moves them. This 0.8 is also unrelated to the 0.8 in
+# frontend/app.js, which is tlm's own EXPLAINABILITY_THRESHOLD.
 TRUST_THRESHOLDS = {"reliable": 0.8, "needs_checking": 0.5}
 
 

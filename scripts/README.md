@@ -2,11 +2,13 @@
 
 ## `calibrate.py`
 
-Replaces the guessed trust-label thresholds with measured ones.
+Derives trust-label thresholds for your own configuration.
 
 `backend/app/config.py` ships `TRUST_THRESHOLDS = {"reliable": 0.8, "needs_checking": 0.5}`
-marked provisional, and the results table in `docs/test_questions.md` is empty. Those
-numbers have never been checked against data. This script is how you check them.
+as placeholders, so the demo has a badge to render. They are not measurements, and no
+measurement made here would transfer to you: a cut-off belongs to a generator, a judge,
+a preset and a domain. `docs/SCORING.md` shows how much each axis moves it. This script
+is how you get numbers that fit your own stack.
 
 Three steps, because the middle one needs a human:
 

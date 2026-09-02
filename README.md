@@ -14,7 +14,7 @@ Not an official Cleanlab project, see [Relationship to cleanlab/tlm](#relationsh
 
 Worth knowing about:
 - [docs/SCORING.md](docs/SCORING.md) explains what the trust score actually measures in a given configuration: how the five sub-scores are weighted and renormalized, the six criteria the judge model is asked to apply, and what each `quality_preset` catches or misses. Read this before tuning thresholds or changing presets.
-- [scripts/calibrate.py](scripts/calibrate.py) runs a question set through the wrapper and, once you have labelled the answers, sweeps candidate thresholds and reports precision/recall plus the count of wrong answers that would be shown as trustworthy. The trust labels this repo ships are still provisional guesses, so if you are deciding whether the scores are good enough for your own use, start here. See [scripts/README.md](scripts/README.md).
+- [scripts/calibrate.py](scripts/calibrate.py) derives trust-label thresholds for **your** configuration: it runs a question set through the wrapper and, once you have labelled the answers, sweeps candidate cut-offs and reports precision/recall plus the count of wrong answers that would be shown as trustworthy. This repo ships no calibrated thresholds on purpose, because none would transfer: a cut-off belongs to a generator, a judge, a preset and a domain, and swapping the judge alone moved two answers from 0.842 to 0.342 here. See [scripts/README.md](scripts/README.md) for the workflow.
 
 ## Using the wrapper
 

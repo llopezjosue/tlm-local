@@ -1,13 +1,17 @@
-# Test set (Phase 4)
+# Example question set
 
-Goal: empirically confirm that the trust score reacts differently to a good answer and
-a bad one, and calibrate the `Reliable`/`Needs checking`/`Unreliable` thresholds against
-real data rather than the provisional values set in Phase 2 (`>=0.8` / `>=0.5`).
+The input `scripts/calibrate.py` reads by default, and a worked example of what a
+calibration set needs to contain. It is **not** a benchmark, and the thresholds it
+would produce are not yours: it sits in the demo persona's domain, so calibrating
+for your own means replacing these questions with your own. `docs/SCORING.md`
+explains why the domain moves the numbers.
 
-20 questions, within the demo persona's domain (sports coach): 15 verifiable factual
-ones, 5 deliberate traps designed to expose overconfidence in the small generator model
-(false precision, myth, unrealistic goal, obscure fact, confused terminology). Results
-(score, latency, preset) get filled into the table below as the real runs happen.
+20 questions for a sports coach: 15 verifiable factual ones, and 5 deliberate traps,
+each probing a different failure mechanism rather than five variants of one - false
+precision, a refuted myth, a physiologically unrealistic goal, an obscure record, and
+confused terminology. That mix is the part worth copying. A set of only fair
+questions cannot calibrate anything, because the sweep needs answers you have
+labelled wrong as much as answers you have labelled right.
 
 ## Factual questions
 
@@ -41,11 +45,10 @@ ones, 5 deliberate traps designed to expose overconfidence in the small generato
 
 ## Results
 
-Still empty: the batch was started once at `quality_preset=medium` and stopped after
-3/20 questions, and has not been re-run.
-
-Run it with the calibration harness, which carries this same question set as its default
-and does the threshold sweep this phase exists for:
+Deliberately empty. Numbers here would be one machine's measurement of one
+generator, one judge and one preset, and publishing them invites exactly the
+mistake this file warns about: reusing a threshold that was never yours. Run it
+yourself and keep your own results out of the repository.
 
 ```bash
 python scripts/calibrate.py run --preset medium --preset high --out logs/calibration.jsonl
