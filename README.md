@@ -20,15 +20,23 @@ Worth knowing about:
 ## Using the wrapper
 
 ```python
+import asyncio
+
 from tlm_local import LocalTLM
 
-tlm_client = LocalTLM()  # reads OLLAMA_API_BASE / GENERATOR_MODEL / DEFAULT_MODEL / TLM_QUALITY_PRESET from env
 
-messages = [{"role": "user", "content": "How long should I rest between squat sets?"}]
-generation, score = await tlm_client.generate_and_score(messages)
+async def main():
+    # reads OLLAMA_API_BASE / GENERATOR_MODEL / DEFAULT_MODEL / TLM_QUALITY_PRESET from env
+    tlm_client = LocalTLM()
 
-print(generation.answer)
-print(score.trust_score)  # 0.0-1.0
+    messages = [{"role": "user", "content": "How long should I rest between squat sets?"}]
+    generation, score = await tlm_client.generate_and_score(messages)
+
+    print(generation.answer)
+    print(score.trust_score)  # 0.0-1.0
+
+
+asyncio.run(main())
 ```
 
 Install it into your own project with `pip install -e ./tlm_local` (or point at this path from your own `requirements.txt`/`pyproject.toml`). See [`tlm_local/README.md`](tlm_local/README.md) for the full API (per-call `quality_preset` override, error types, configuration).
@@ -49,9 +57,11 @@ ollama pull ministral-3:3b
 ollama pull qwen2.5:7b
 
 # 4. Python environment. 3.11 is the floor: litellm imports `typing.NotRequired`,
-#    which only exists from 3.11 on. Installs tlm_local in editable mode, plus
-#    FastAPI/uvicorn.
-python3.11 -m venv .venv
+#    which only exists from 3.11 on. Check yours with `python3 --version`; if it
+#    is older, `uv python install 3.11` fetches one without admin rights and
+#    without touching the system, or use python.org or your package manager.
+#    Installs tlm_local in editable mode, plus FastAPI/uvicorn.
+python3 -m venv .venv        # substitute your 3.11+ interpreter if python3 is older
 source .venv/bin/activate    # bash/zsh
 # .venv\Scripts\activate     # PowerShell
 pip install -r requirements.txt
@@ -66,6 +76,16 @@ uvicorn app.main:app --port 8000 --reload
 ```
 
 If you run Ollama in a container, check it can actually reach your accelerator. A container that silently falls back to the CPU makes every scored request several times slower, and nothing reports it.
+
+### Running the tests
+
+67 tests, none of which need Ollama or a `.env` — the integration tests that do skip
+themselves. Useful for checking the wrapper on a machine before pulling any model:
+
+```bash
+pip install -e "./tlm_local[dev]"          # pytest and ruff, not needed to run the app
+python -m pytest tlm_local/tests backend/tests -q
+```
 
 Open **http://localhost:8000/** for the chat UI, or call the API directly:
 
