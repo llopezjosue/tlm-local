@@ -61,6 +61,17 @@ if DEFAULT_QUALITY_PRESET not in VALIDATED_QUALITY_PRESETS:
         f"Set it to one of: {', '.join(VALIDATED_QUALITY_PRESETS)}."
     )
 
+# Checked here rather than trusted: MAX_CONCURRENT_CHATS=0 builds a semaphore
+# with no permits, so the app starts, reports nothing, and every request hangs
+# forever - which reads as a slow model rather than a misconfiguration.
+for _name, _value in (
+    ("MAX_CONCURRENT_CHATS", MAX_CONCURRENT_CHATS),
+    ("MAX_QUESTION_CHARS", MAX_QUESTION_CHARS),
+    ("MAX_TOKENS_LIMIT", MAX_TOKENS_LIMIT),
+):
+    if _value < 1:
+        raise RuntimeError(f"{_name} is {_value}, which cannot serve any request. It must be at least 1.")
+
 _chat_slots = asyncio.Semaphore(MAX_CONCURRENT_CHATS)  # see app.config
 
 REASONING_EFFORTS = tuple(effort.value for effort in ReasoningEffort)

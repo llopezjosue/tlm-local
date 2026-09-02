@@ -8,6 +8,7 @@ overloads. Nothing here reaches a model.
 from __future__ import annotations
 
 import asyncio
+import os
 import subprocess
 import sys
 import threading
@@ -123,3 +124,28 @@ class _ScoreResult:
     trust_score = 0.9
     raw: dict = {}
     explanation = None
+
+
+class TestStartupRefusesUnusableLimits:
+    """MAX_CONCURRENT_CHATS=0 builds a semaphore with no permits: the app starts,
+    reports nothing, and every request hangs forever, which reads as a slow model
+    rather than a misconfiguration.
+    """
+
+    def test_a_zero_limit_stops_the_app_from_starting(self):
+        # given - a fresh interpreter, since the check runs at import
+        probe = "import sys; sys.path.insert(0, '.'); import app.main"
+
+        # when
+        result = subprocess.run(
+            [sys.executable, "-c", probe],
+            cwd=BACKEND,
+            capture_output=True,
+            text=True,
+            timeout=120,
+            env={**os.environ, "MAX_CONCURRENT_CHATS": "0"},
+        )
+
+        # then
+        assert result.returncode != 0
+        assert "MAX_CONCURRENT_CHATS is 0" in result.stderr

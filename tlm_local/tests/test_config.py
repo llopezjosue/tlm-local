@@ -162,6 +162,36 @@ class TestLocalTLMConfig:
         # then
         assert os.environ["OLLAMA_API_BASE"] == "http://gpu-box:11434"
 
+    def test_strips_a_trailing_slash_from_the_host(self):
+        """generate() builds `<base>/v1`, so a pasted URL ending in a slash would
+        produce a double slash in the path.
+        """
+        # given / when
+        config = LocalTLMConfig(ollama_api_base="http://localhost:11434/")
+
+        # then
+        assert config.ollama_api_base == "http://localhost:11434"
+
+    @pytest.mark.parametrize(
+        ("field", "value"),
+        [("reasoning_effort", "hihg"), ("similarity_measure", "jacard")],
+    )
+    def test_rejects_an_unknown_value_at_construction(self, field, value):
+        """Left unchecked these reach tlm's own validation one scoring call
+        later, which is a 500 on every request instead of one clear failure.
+        """
+        # given / when / then
+        with pytest.raises(ValueError, match=f"Unknown {field}"):
+            LocalTLMConfig(**{field: value})
+
+    def test_accepts_the_values_tlm_actually_defines(self):
+        # given / when
+        config = LocalTLMConfig(reasoning_effort="high", similarity_measure="statement")
+
+        # then
+        assert config.reasoning_effort == "high"
+        assert config.similarity_measure == "statement"
+
     def test_config_is_immutable(self):
         # given
         config = LocalTLMConfig()

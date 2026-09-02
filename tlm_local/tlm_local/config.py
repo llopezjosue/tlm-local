@@ -50,6 +50,26 @@ class LocalTLMConfig:
     reasoning_effort: str | None = field(default_factory=lambda: os.environ.get("TLM_REASONING_EFFORT") or None)
     similarity_measure: str | None = field(default_factory=lambda: os.environ.get("TLM_SIMILARITY_MEASURE") or None)
 
+    def __post_init__(self) -> None:
+        """Normalize the host and reject unknown values while there is still a
+        caller to tell. Left alone, a typo in either field reaches tlm's own
+        pydantic validation one scoring call later, which surfaces as a 500 per
+        request rather than one failure at startup.
+
+        Imported lazily for the reason judge_model gives: this module must
+        finish loading .env before tlm is first imported.
+        """
+        from tlm.config.presets import ReasoningEffort
+        from tlm.types import SimilarityMeasure
+
+        object.__setattr__(self, "ollama_api_base", self.ollama_api_base.rstrip("/"))
+
+        for field_name, enum in (("reasoning_effort", ReasoningEffort), ("similarity_measure", SimilarityMeasure)):
+            value = getattr(self, field_name)
+            allowed = [member.value for member in enum]
+            if value is not None and value not in allowed:
+                raise ValueError(f"Unknown {field_name} {value!r}, expected one of {allowed}")
+
     @property
     def judge_model(self) -> str:
         """Read-only: the judge model `tlm` has actually resolved.
