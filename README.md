@@ -14,7 +14,7 @@ Not an official Cleanlab project, see [Relationship to cleanlab/tlm](#relationsh
 
 Worth knowing about:
 - [docs/SCORING.md](docs/SCORING.md) — how to read the number: what contributes at each preset, why a threshold does not transfer between configurations, and the two things the score will not tell you.
-- [docs/SAFETY_NOTES.md](docs/SAFETY_NOTES.md) — the risks found by review that are not fixed in code, and why each was left alone.
+- [docs/SAFETY_NOTES.md](docs/SAFETY_NOTES.md) — the risks found by review and left unfixed on purpose. The first one is measured: a wrong answer can be pushed across the Reliable threshold by text placed in the question.
 - [scripts/calibrate.py](scripts/calibrate.py) derives trust-label thresholds for **your** configuration: it runs a question set through the wrapper and, once you have labelled the answers, sweeps candidate cut-offs and reports precision/recall plus the count of wrong answers that would be shown as trustworthy. This repo ships no calibrated thresholds on purpose, because none would transfer: a cut-off belongs to a generator, a judge, a preset and a domain, and swapping the judge alone moved two answers from 0.842 to 0.342 here. See [scripts/README.md](scripts/README.md) for the workflow.
 
 ## Using the wrapper
