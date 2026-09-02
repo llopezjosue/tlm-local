@@ -22,6 +22,10 @@ MAX_CONCURRENT_CHATS = int(os.environ.get("MAX_CONCURRENT_CHATS", "1"))
 # answer, so its length is multiplied through the scoring pass.
 MAX_TOKENS_LIMIT = int(os.environ.get("MAX_TOKENS_LIMIT", "4096"))
 
+# The question is unbounded otherwise, and it is not sent once: it goes to the
+# generator, then into each of the six judge prompts.
+MAX_QUESTION_CHARS = int(os.environ.get("MAX_QUESTION_CHARS", "4000"))
+
 # No persona hardcoded: this backend is a generic example, not tied to a topic.
 # env.example ships the demo's sport coach as an illustration.
 DEFAULT_SYSTEM_PROMPT = "You are a helpful, honest and concise assistant."

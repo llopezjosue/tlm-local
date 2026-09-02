@@ -27,7 +27,14 @@ from tlm_local import (
     ReasoningEffort,
 )
 
-from app.config import LOG_FILE, MAX_CONCURRENT_CHATS, MAX_TOKENS_LIMIT, REPO_ROOT, label_for_score
+from app.config import (
+    LOG_FILE,
+    MAX_CONCURRENT_CHATS,
+    MAX_QUESTION_CHARS,
+    MAX_TOKENS_LIMIT,
+    REPO_ROOT,
+    label_for_score,
+)
 from app.generator import build_messages
 
 # Root stays at WARNING on purpose: tlm logs the full message payload of every
@@ -100,6 +107,10 @@ async def chat(payload: ChatRequest) -> ChatResponse:
     question = payload.question.strip()
     if not question:
         raise HTTPException(status_code=400, detail="The question cannot be empty.")
+    if len(question) > MAX_QUESTION_CHARS:
+        raise HTTPException(
+            status_code=400, detail=f"The question must be at most {MAX_QUESTION_CHARS} characters."
+        )
 
     quality_preset = payload.quality_preset or DEFAULT_QUALITY_PRESET
     if quality_preset not in VALIDATED_QUALITY_PRESETS:
@@ -157,7 +168,7 @@ async def chat(payload: ChatRequest) -> ChatResponse:
         raise HTTPException(
             status_code=500,
             detail="An internal error occurred while generating or scoring the answer.",
-        )
+        ) from None
 
     trust_label = label_for_score(score_result.trust_score)
     duration_s = time.monotonic() - start
