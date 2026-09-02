@@ -5,6 +5,7 @@ this module only wires it up and owns the user-facing messages.
 """
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import time
@@ -21,7 +22,7 @@ from tlm_local import (
     ReasoningEffort,
 )
 
-from app.config import LOG_FILE, REPO_ROOT, label_for_score
+from app.config import LOG_FILE, MAX_CONCURRENT_CHATS, MAX_TOKENS_LIMIT, REPO_ROOT, label_for_score
 from app.generator import build_messages
 
 logging.basicConfig(level=logging.INFO)
@@ -41,6 +42,10 @@ if DEFAULT_QUALITY_PRESET not in VALIDATED_QUALITY_PRESETS:
         f"TLM_QUALITY_PRESET is {DEFAULT_QUALITY_PRESET!r}, which this app does not serve. "
         f"Set it to one of: {', '.join(VALIDATED_QUALITY_PRESETS)}."
     )
+
+# Serializes the scoring work rather than letting requests compete for Ollama;
+# see MAX_CONCURRENT_CHATS in app.config for why queuing beats failing here.
+_chat_slots = asyncio.Semaphore(MAX_CONCURRENT_CHATS)
 
 REASONING_EFFORTS = tuple(effort.value for effort in ReasoningEffort)
 # embedding_small and embedding_large are excluded on purpose: they are the one
@@ -113,26 +118,31 @@ async def chat(payload: ChatRequest) -> ChatResponse:
                 "hosted OpenAI, which would break this app's fully-local guarantee."
             ),
         )
-    if payload.max_tokens < 1:
-        raise HTTPException(status_code=400, detail="max_tokens must be at least 1.")
+    if not 1 <= payload.max_tokens <= MAX_TOKENS_LIMIT:
+        raise HTTPException(
+            status_code=400, detail=f"max_tokens must be between 1 and {MAX_TOKENS_LIMIT}."
+        )
 
+    # Started before the wait so the duration reported to the caller is the one
+    # they actually experienced, queuing included.
     start = time.monotonic()
     try:
-        messages = build_messages(question)
-        generation = await tlm_client.generate(
-            messages,
-            max_tokens=payload.max_tokens,
-            temperature=payload.temperature,
-            seed=payload.seed,
-        )
-        score_result = await tlm_client.score(
-            generation.messages,
-            generation.raw_response,
-            perplexity=generation.perplexity,
-            quality_preset=quality_preset,
-            reasoning_effort=payload.reasoning_effort,
-            similarity_measure=payload.similarity_measure,
-        )
+        async with _chat_slots:
+            messages = build_messages(question)
+            generation = await tlm_client.generate(
+                messages,
+                max_tokens=payload.max_tokens,
+                temperature=payload.temperature,
+                seed=payload.seed,
+            )
+            score_result = await tlm_client.score(
+                generation.messages,
+                generation.raw_response,
+                perplexity=generation.perplexity,
+                quality_preset=quality_preset,
+                reasoning_effort=payload.reasoning_effort,
+                similarity_measure=payload.similarity_measure,
+            )
     except (OllamaUnavailableError, ModelNotPulledError, JudgeCallFailedError) as e:
         logger.error("Chat request failed: %s", e)
         raise HTTPException(status_code=503, detail=_user_facing_error(e)) from e
