@@ -21,7 +21,11 @@ LOG_FILE = REPO_ROOT / "logs" / "scores.jsonl"
 DEFAULT_SYSTEM_PROMPT = "You are a helpful, honest and concise assistant."
 SYSTEM_PROMPT = os.environ.get("SYSTEM_PROMPT", DEFAULT_SYSTEM_PROMPT)
 
-# Provisional - Phase 4 tunes these empirically against a real test question set.
+# Provisional - scripts/calibrate.py replaces these with measured values.
+#
+# The 0.8 here is this app's presentation choice and is unrelated to the 0.8 in
+# frontend/app.js, which is tlm's own EXPLAINABILITY_THRESHOLD. They are equal
+# by coincidence, so recalibrating these must not touch that one.
 TRUST_THRESHOLDS = {"reliable": 0.8, "needs_checking": 0.5}
 
 

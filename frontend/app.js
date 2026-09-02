@@ -1,5 +1,13 @@
 const CHAT_ENDPOINT = "/chat";
 
+// tlm's EXPLAINABILITY_THRESHOLD (tlm/config/defaults.py), not this app's
+// "Reliable" threshold. The two both happen to be 0.8 and mean different
+// things: above this one tlm returns a fixed string instead of a real
+// critique, so showing it would add noise to every answer. Recalibrating the
+// app's trust thresholds must NOT move this number - it tracks a constant
+// inside tlm, and coupling them would hide explanations tlm did produce.
+const TLM_EXPLAINABILITY_THRESHOLD = 0.8;
+
 const TRUST_LABEL_CLASS = {
   "Reliable": "high",
   "Needs checking": "mid",
@@ -29,10 +37,9 @@ function addBotMessage(data) {
   textEl.textContent = data.response;
   row.appendChild(textEl);
 
-  // tlm only says something substantive below its own 0.8 threshold, and only
-  // when reasoning_effort is not "none". Above that it is a fixed string, so
-  // showing it would just add noise to every answer.
-  if (data.explanation && data.trust_score < 0.8) {
+  // Only carries a real critique below that threshold, and only when
+  // reasoning_effort is not "none".
+  if (data.explanation && data.trust_score < TLM_EXPLAINABILITY_THRESHOLD) {
     const why = document.createElement("details");
     why.className = "explanation";
     const summary = document.createElement("summary");
