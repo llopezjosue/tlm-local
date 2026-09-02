@@ -1,6 +1,5 @@
 """Builds the chat messages sent to the generator model. The persona lives
-entirely in app.config.SYSTEM_PROMPT (configurable via the SYSTEM_PROMPT env
-var) - nothing sport-specific or otherwise topic-specific is hardcoded here.
+entirely in app.config.SYSTEM_PROMPT; nothing topic-specific is hardcoded.
 """
 from __future__ import annotations
 

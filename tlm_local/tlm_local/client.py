@@ -31,25 +31,14 @@ from .errors import (
 
 logger = logging.getLogger(__name__)
 
-# tlm's own five presets. Only "medium" and "high" have been measured on this
-# project's hardware/models:
-#   medium: self-reflection only, ~59-90s per scored answer (this project's default)
-#   high:   + consistency-sampling (4 completions), ~94-179s, AND recalibrates
-#           scores rather than just adding strictness - a genuinely good
-#           answer measured here dropped from ~0.9 to ~0.72. Not a drop-in
-#           swap for "slower but otherwise the same".
-# "base"/"low"/"best" are valid tlm presets, verified to run without error on
-# this project (see tests/test_client.py), but not benchmarked for score
-# quality here.
+# All five run; only medium and high are benchmarked for score quality here,
+# and high is not a slower medium - it reweights. See docs/SCORING.md.
 KNOWN_QUALITY_PRESETS = ("base", "low", "medium", "high", "best")
 VALIDATED_QUALITY_PRESETS = ("medium", "high")
 
-# Lower-level tlm.config.schema.Config fields that quality_preset normally
-# derives automatically. Accepted through score()'s **advanced_tlm_config
-# escape hatch for callers who want finer control than the presets offer -
-# see CONFIG_REFERENCE.md for what each one does. Kept as an explicit
-# allowlist so a typo surfaces as a clear error here rather than a confusing
-# one from inside tlm's own pydantic validation.
+# Config fields quality_preset normally derives, reachable through score()'s
+# **advanced_tlm_config. An allowlist rather than a passthrough so a typo fails
+# here, not inside tlm's pydantic validation. CONFIG_REFERENCE.md covers each.
 ADVANCED_CONFIG_FIELDS = frozenset(
     {
         "num_reference_completions",
@@ -69,9 +58,7 @@ class Generation:
     answer: str
     messages: list[dict]
     raw_response: dict
-    # Named after tlm's field, which is a misnomer: it carries a mean token
-    # probability in [0, 1], not a perplexity. See _mean_token_probability.
-    perplexity: float | None = None
+    perplexity: float | None = None  # tlm's name; a probability, not a perplexity
     usage: dict | None = None  # prompt/completion/total token counts, from litellm
 
 
@@ -80,36 +67,22 @@ class ScoreResult:
     trust_score: float
     raw: dict  # full tlm InferenceResult
     explanation: str | None = None
-    """tlm's stated reason for the score, when it has one.
-
-    Above tlm's EXPLAINABILITY_THRESHOLD (0.8) this is always the fixed string
-    "Did not find a reason to doubt trustworthiness."; below it, it only carries
-    real critique when reasoning_effort is not "none", which is the default for
-    a QA workflow. See docs/SCORING.md before relying on it.
-
-    The per-signal sub-scores are NOT here: tlm computes them and drops them.
-    That same doc has the logging recipe to see them.
+    """tlm's stated reason for the score. A fixed string above tlm's 0.8
+    threshold, and real critique only when reasoning_effort is not "none".
+    Carries no per-signal breakdown; docs/SCORING.md explains both.
     """
 
 
 def _mean_token_probability(raw_response: dict) -> float | None:
     """Mean token probability, mean(exp(logprob)), over the generated answer.
 
-    Despite the name of the tlm field this feeds, a mean probability is
-    exactly what that field wants. tlm fills it for its own completions with
-    get_parsed_answer_tokens_confidence (tlm/utils/parse_utils.py:145-161),
-    which averages exp(logprob) per token and clips to 1.0, and the helper it
-    uses, _logprob_to_probability, is documented as converting "to probability
-    0-1 scale". A real perplexity is exp(-mean logprob), a value of at least 1,
-    and feeding one here would put the signal far outside the 0-1 range the
-    weighted average assumes - silently, since nothing validates it. The
-    misnomer is upstream; the value below was checked to match tlm's own
-    computation numerically.
+    Not a perplexity, and deliberately so: tlm's field of that name wants a
+    probability in [0, 1], matching what it computes for its own completions
+    (tlm/utils/parse_utils.py:145-161). Passing a real perplexity would be the
+    wrong scale, silently. docs/SCORING.md has the derivation.
 
-    Only populated when the completion actually carries per-token logprobs,
-    which requires generate()'s `openai` provider route (see its docstring);
-    None otherwise, and tlm's scoring math renormalizes over whatever signals
-    are actually available rather than penalizing a missing one.
+    None when the response carries no logprobs, which tlm renormalizes around
+    rather than penalizing.
     """
     try:
         logprobs = raw_response["choices"][0].get("logprobs")
@@ -129,17 +102,13 @@ class LocalTLM:
     def __init__(self, config: LocalTLMConfig | None = None, *, require_local_judge: bool = True):
         """Build a client and assert the stack really is local.
 
-        Two things have to happen here rather than lazily, because both are
-        about state `tlm` and litellm read out of the process environment
-        instead of from arguments:
+        Both steps here are eager because both concern process-wide state that
+        tlm and litellm read from the environment, not from arguments: the
+        Ollama host is exported so judge calls reach it, and the judge model
+        tlm resolved is checked, since its fallback is a hosted model and it
+        fails open. Pitfalls 1 and 3 in the package README.
 
-        - ollama_api_base is exported so judge calls reach the same host as
-          generation (see LocalTLMConfig.export_ollama_api_base).
-        - the judge model tlm actually resolved is checked, because tlm's own
-          fallback is the hosted gpt-4.1-mini and it fails open, not closed.
-
-        require_local_judge=False skips only the second check, for the
-        deliberate case of scoring against a hosted judge.
+        require_local_judge=False skips only the judge check.
         """
         self.config = config or LocalTLMConfig()
         self.config.export_ollama_api_base()
@@ -165,24 +134,19 @@ class LocalTLM:
     ) -> Generation:
         """Generate an answer with the configured (or given) generator model.
 
-        temperature/top_p/seed/stop are optional passthroughs to litellm, left
-        unset by default so the provider's own defaults apply. `seed` is the one
-        worth knowing about: without it, re-running the same prompt gives a
-        different answer and a different score, so no benchmark is reproducible.
-        Note that `litellm.drop_params = True` is set package-wide, so a
-        parameter the endpoint does not support is dropped rather than refused.
+        temperature/top_p/seed/stop are passed to litellm only when set, so the
+        provider's defaults otherwise apply. `seed` is what makes a run
+        reproducible; without it the same prompt gives a different answer and a
+        different score. Unsupported parameters are dropped, not refused, since
+        litellm.drop_params is set package-wide.
 
-        Routes through litellm's `openai` provider pointed at Ollama's
-        OpenAI-compatible endpoint (`<ollama_api_base>/v1`), not the
-        `ollama`/`ollama_chat` providers: verified directly (via
-        litellm._turn_on_debug()) that both of those target Ollama's
-        *native* API and silently drop the `logprobs` parameter into an
-        `options` bag where it isn't a recognized key - even though Ollama's
-        OpenAI-compatible endpoint genuinely supports it (confirmed with
-        real per-token data over raw HTTP). Real logprobs let us populate
-        tlm's otherwise-unavailable perplexity signal (see
-        _mean_token_probability above and the package README's "Known
-        limitations" section for the full story).
+        Routes through litellm's `openai` provider against
+        `<ollama_api_base>/v1` rather than the `ollama` providers, which is the
+        only route returning real logprobs, and so the only one that can feed
+        the perplexity signal. Pitfall 7 in the package README.
+
+        Raises OllamaUnavailableError or ModelNotPulledError for the two named
+        failures; any other API error surfaces unchanged.
         """
         model = model or self.config.generator_model
         bare_model = model.split("/", 1)[-1]  # strip an "ollama/" prefix if present
@@ -240,55 +204,23 @@ class LocalTLM:
     ) -> ScoreResult:
         """Score an already-generated answer for trustworthiness.
 
-        TLM.score()/.create() are synchronous and call
-        self._event_loop.run_until_complete(...) internally. Calling that
-        directly from a coroutine - which already has a running event loop -
-        raises "RuntimeError: This event loop is already running" (confirmed
-        by reproducing the crash). Running it in a worker thread avoids the
-        conflict: no loop is running there yet, so TLM can safely create its
-        own.
-
-        raw_response must be a dict as produced by a litellm ModelResponse's
-        .model_dump() (not a real openai.types.chat.ChatCompletion instance -
-        litellm's ModelResponse isn't one, so it never gets the automatic
-        `{"chat_completion": ...}` wrapping TLM.score() applies to real
-        ChatCompletion objects). We wrap it in that same shape ourselves
-        below, since TLM.score() expects that exact structure to extract the
-        answer text internally.
-
-        perplexity, if given (see generate()'s return value), is passed
-        through as a top-level "perplexity" key: verified directly in tlm's
-        source (tlm/types/completion.py, Completion.from_completion_dict)
-        that TLM.score() never computes this itself from logprobs for an
-        externally-supplied response - it only reads a literal "perplexity"
-        key if the caller provides one.
+        raw_response is a litellm ModelResponse dump, which TLM.score() cannot
+        read as-is; it is wrapped here into the shape it expects. perplexity,
+        from generate(), is passed as the top-level key tlm reads, since tlm
+        never derives it for a supplied response. The call runs in a worker
+        thread because TLM.score() drives its own event loop. Pitfalls 4, 5
+        and 7 in the package README.
 
         quality_preset/reasoning_effort/similarity_measure override
-        self.config's values for this call only - lets one LocalTLM instance
-        serve different scoring depths per request (e.g. a frontend
-        selector) without reconstructing the client. Only "medium" and
-        "high" are validated on this project for quality_preset (see
-        VALIDATED_QUALITY_PRESETS); every parameter here is documented in
-        CONFIG_REFERENCE.md, including which ones simply have no effect
-        outside certain presets/workflows.
+        self.config for this call only, so one client can serve several
+        scoring depths. **advanced_tlm_config reaches the lower-level Config
+        fields in ADVANCED_CONFIG_FIELDS; an unknown key raises ValueError
+        before any network call. CONFIG_REFERENCE.md documents every
+        parameter, including the ones inert outside certain presets.
 
-        constrain_outputs restricts answers to a fixed set of values
-        (multiple-choice/classification workflows) - not relevant to a plain
-        QA chatbot, exposed for completeness.
-
-        evals lets you attach custom semantic evaluation criteria on top of
-        the core trustworthiness score (see tlm.types.Eval); re-exported
-        from this package for convenience. Currently raises
-        EvalsNotSupportedError on any non-empty value: a reproducible bug in
-        tlm==0.0.3's own pipeline factory, not something this wrapper can
-        work around - see that exception's docstring.
-
-        **advanced_tlm_config accepts the lower-level tlm Config fields that
-        quality_preset normally derives automatically (see
-        ADVANCED_CONFIG_FIELDS) for callers who want finer control than the
-        presets offer, e.g. score(..., quality_preset="medium",
-        num_consistency_completions=2). Unknown keys raise ValueError
-        immediately rather than failing inside tlm's own validation.
+        Raises EvalsNotSupportedError, RagNotSupportedError or
+        JudgeCallFailedError on the three upstream defects; see their
+        docstrings.
         """
         model = model or self.config.generator_model
         quality_preset = quality_preset or self.config.quality_preset

@@ -31,11 +31,9 @@ logger = logging.getLogger("reliable_chat")
 app = FastAPI(title="reliable-chat")
 tlm_client = LocalTLM()
 
-# The wrapper already reads TLM_QUALITY_PRESET from the environment, so the
-# app's default is whatever it resolved; a request can still override it per
-# call. Validated at import rather than per request: a preset this app does not
-# serve would otherwise turn every single call into a 400, whereas failing at
-# startup names the problem once, at the moment someone can fix it.
+# Whatever the wrapper resolved from TLM_QUALITY_PRESET; a request may still
+# override it. Checked at import so an unsupported preset fails once at startup
+# rather than turning every call into a 400.
 DEFAULT_QUALITY_PRESET = tlm_client.config.quality_preset
 if DEFAULT_QUALITY_PRESET not in VALIDATED_QUALITY_PRESETS:
     raise RuntimeError(
@@ -43,9 +41,7 @@ if DEFAULT_QUALITY_PRESET not in VALIDATED_QUALITY_PRESETS:
         f"Set it to one of: {', '.join(VALIDATED_QUALITY_PRESETS)}."
     )
 
-# Serializes the scoring work rather than letting requests compete for Ollama;
-# see MAX_CONCURRENT_CHATS in app.config for why queuing beats failing here.
-_chat_slots = asyncio.Semaphore(MAX_CONCURRENT_CHATS)
+_chat_slots = asyncio.Semaphore(MAX_CONCURRENT_CHATS)  # see app.config
 
 REASONING_EFFORTS = tuple(effort.value for effort in ReasoningEffort)
 # embedding_small and embedding_large are excluded on purpose: they are the one
@@ -123,9 +119,7 @@ async def chat(payload: ChatRequest) -> ChatResponse:
             status_code=400, detail=f"max_tokens must be between 1 and {MAX_TOKENS_LIMIT}."
         )
 
-    # Started before the wait so the duration reported to the caller is the one
-    # they actually experienced, queuing included.
-    start = time.monotonic()
+    start = time.monotonic()  # before the wait: the caller experienced the queuing too
     try:
         async with _chat_slots:
             messages = build_messages(question)

@@ -1,13 +1,10 @@
-"""Loads local-Ollama configuration and applies the process-wide fixes tlm
-needs to work safely against Ollama.
+"""Local-Ollama configuration, plus the two process-wide fixes tlm needs.
 
-Import this module (or anything from the tlm_local package, which imports
-this first) before `import tlm` appears anywhere in your process: tlm builds
-and caches its own Settings object - which reads the judge model from the
-DEFAULT_MODEL env var - the moment it is first imported. Set env vars after
-that point and they're too late for the rest of the process's lifetime, no
-matter what you do afterwards. This is why the .env loading below happens
-unconditionally at import time, not lazily inside a function.
+Both are import-time side effects, and that is the point: tlm caches its
+settings the moment it is first imported, so a .env loaded afterwards is too
+late for the life of the process. Importing anything from this package runs
+this file first. Pitfalls 1 and 2 in the package README explain what each
+side effect prevents.
 """
 
 from __future__ import annotations
@@ -27,14 +24,10 @@ logger = logging.getLogger(__name__)
 # app's repo layout.
 load_dotenv()
 
-# tlm's self-reflection/consistency judge calls always send a `logprobs` key
-# that Ollama's chat API rejects outright. tlm catches the resulting
-# completion failure internally, but the downstream code handling that
-# failure doesn't check for it and crashes with an unrelated AttributeError
-# instead of degrading gracefully - so without this, every single scoring
-# call crashes. The value tlm actually requests there is already
-# False/None, so dropping the param loses no real signal - it just lets
-# Ollama accept the request instead of rejecting it outright.
+# Without this, every scoring call crashes: tlm's judge calls always send a
+# `logprobs` key Ollama rejects, and tlm's handling of that rejection dies on
+# an unrelated AttributeError. The dropped value is already False/None, so no
+# signal is lost. Pitfall 2 in the package README.
 litellm.drop_params = True
 
 logger.debug("tlm_local: .env loaded, litellm.drop_params enabled")
@@ -61,22 +54,11 @@ class LocalTLMConfig:
     def judge_model(self) -> str:
         """Read-only: the judge model `tlm` has actually resolved.
 
-        This deliberately asks `tlm` rather than reading DEFAULT_MODEL from the
-        environment. The two can disagree, and when they do it is the env var
-        that is misleading: `tlm` caches its Settings on first import
-        (lru_cache), so a DEFAULT_MODEL exported after that point is read back
-        by os.environ but has no effect on any judge call. An earlier version
-        of this property read the env var with a hardcoded "ollama/qwen2.5:7b"
-        fallback, which reported a local judge in exactly the situation that
-        matters most: DEFAULT_MODEL not visible to `tlm`, whose own fallback is
-        the hosted `gpt-4.1-mini`.
+        Asks tlm rather than reading DEFAULT_MODEL, because once tlm has cached
+        its settings the two can disagree and it is the environment that lies.
+        The import is lazy so this module can finish loading .env first.
 
-        Imported lazily: this module must finish loading .env before `tlm` is
-        first imported anywhere in the process (see the module docstring), so
-        it cannot import `tlm` at module level.
-
-        To actually change the judge model, set DEFAULT_MODEL in your
-        environment or .env BEFORE the process starts.
+        To change the judge, set DEFAULT_MODEL before the process starts.
         """
         from tlm.config.defaults import get_settings
 
@@ -92,26 +74,17 @@ class LocalTLMConfig:
         return self.judge_model.startswith("ollama/")
 
     def export_ollama_api_base(self) -> None:
-        """Publish ollama_api_base where litellm's ollama route will find it.
+        """Publish ollama_api_base where litellm's judge calls will find it.
 
-        Only `generate()` can pass api_base explicitly, because it builds its
-        own litellm call. Judge and consistency calls are built inside `tlm`,
-        which never sets api_base on them (verified: those calls go out with
-        api_base=None), and `tlm`'s own Config.api_base field is not honored on
-        that path either. litellm therefore resolves the Ollama host from the
-        OLLAMA_API_BASE env var, falling back to http://localhost:11434.
+        Judge calls are built inside tlm and carry no api_base, so litellm
+        resolves their host from this variable; without the export, generation
+        and scoring would target different servers. Pitfall 3 in the package
+        README.
 
-        Without this, LocalTLM(LocalTLMConfig(ollama_api_base="http://box:11434"))
-        would generate on that host and silently score on localhost.
-
-        This config object wins over a pre-existing env var when the two differ,
-        which is the opposite of the usual precedence and is deliberate. The two
-        can only differ when the caller passed ollama_api_base explicitly, since
-        the field otherwise defaults to reading that same variable. An explicit
-        argument is the more specific intent, and honoring the env var instead
-        would split generation and scoring across two hosts, which is never what
-        anyone wants. Mutating the environment from a library is not free, so it
-        is skipped entirely when the values already agree.
+        An explicit config value deliberately wins over a pre-existing env var:
+        the two can only differ when the caller passed one, and that is the
+        more specific intent. Skipped when they already agree, since mutating
+        the environment from a library is not free.
         """
         current = os.environ.get("OLLAMA_API_BASE")
         if current == self.ollama_api_base:

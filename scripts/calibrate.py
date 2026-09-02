@@ -27,9 +27,8 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 QUESTIONS_FILE = REPO_ROOT / "docs" / "test_questions.md"
 SWEEP_GRID = [round(0.05 * n, 2) for n in range(1, 20)]
 
-# Questions live in docs/test_questions.md, not here: duplicating them would give
-# the project two sources of truth for the same test set. The price is that this
-# parser is coupled to that file's table layout.
+# Parsed from docs/test_questions.md so the test set has one source of truth;
+# the price is coupling to that file's table layout.
 ROW = re.compile(r"^\|\s*(\d+)\s*\|\s*(.+?)\s*\|")
 
 
@@ -98,8 +97,8 @@ async def run(presets: list[str], out: Path) -> None:
 def sweep(correct: list[float], incorrect: list[float]) -> list[dict]:
     """Precision, recall and false negatives for calling an answer reliable at each cut-off.
 
-    The false-negative count (a wrong answer shown as trustworthy) is the number
-    this project's two known failures are about, so it gets its own column.
+    False negatives get their own column: a wrong answer shown as trustworthy is
+    the failure this project has already hit twice.
     """
     rows = []
     for cut in SWEEP_GRID:
@@ -150,13 +149,10 @@ def analyze(path: Path) -> None:
         # so recall is not given away for nothing.
         clean = [r for r in table if r["bad"] == 0]
         best = min(clean, key=lambda r: (-r["f1"], r["cut"])) if clean else max(table, key=lambda r: r["f1"])
-        # The lower cut-off has to sit at or below the weakest correct answer, so
-        # no answer known to be right lands in the bottom bucket. Nearest grid
-        # point is not enough: rounding up would strand it there. It also has to
-        # stay at or below the reliable cut-off: the two are computed from
-        # different quantities and cleanly separated scores push them past each
-        # other, which would leave "needs checking" as an unreachable band and
-        # label every score above the floor reliable on no evidence.
+        # At or below the weakest correct answer, so nothing known to be right
+        # lands in the bottom bucket, and at or below the reliable cut-off, or
+        # the two cross on cleanly separated scores and "needs checking" becomes
+        # an unreachable band.
         below = [c for c in SWEEP_GRID if c <= min(min(correct), best["cut"])]
         floor = max(below) if below else SWEEP_GRID[0]
         print(f"\nrecommended: reliable >= {best['cut']:.2f}, needs_checking >= {floor:.2f}")

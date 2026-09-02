@@ -1,11 +1,7 @@
-# .client (which imports .config first) must be imported before anything
-# that touches `tlm` directly, including the "from tlm..." re-exports below:
-# .config's import-time side effect (loading .env before tlm caches its
-# settings) has to run first. See config.py's docstring for why. Importing
-# `tlm_local` at all - by any submodule, from anywhere - always runs this
-# file first, so this ordering is the one guarantee the whole package's
-# correctness rests on. Do not let a linter or auto-import-sorter reorder
-# this block.
+# .client (which imports .config first) must come before the "from tlm..."
+# re-exports: .config loads .env, and tlm caches its settings on first import.
+# This file runs before any submodule, so this ordering is what the package's
+# correctness rests on. Do not let a linter reorder it. See config.py.
 from .client import (
     ADVANCED_CONFIG_FIELDS,
     KNOWN_QUALITY_PRESETS,
