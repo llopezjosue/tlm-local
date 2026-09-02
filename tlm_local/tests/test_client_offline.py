@@ -22,6 +22,7 @@ import pytest
 from openai import APIError
 
 from tlm_local import (
+    EmptyGenerationError,
     JudgeCallFailedError,
     JudgeModelNotLocalError,
     LocalTLM,
@@ -299,6 +300,20 @@ class TestGenerateRouting:
         assert generation.answer == ANSWER
         assert generation.messages is messages
         assert generation.perplexity == pytest.approx(EXPECTED_PERPLEXITY, abs=1e-3)
+
+    async def test_an_empty_completion_raises_empty_generation_error(self, tlm_client, acompletion, messages):
+        """Reachable on a filtered or aborted generation, and without the guard
+        it dies as a TypeError from a debug logging line, which names the
+        logging rather than the empty answer.
+        """
+        # given
+        acompletion.return_value = _FakeModelResponse(
+            {"id": "x", "choices": [{"message": {"role": "assistant", "content": None}, "logprobs": None}]}
+        )
+
+        # when / then
+        with pytest.raises(EmptyGenerationError):
+            await tlm_client.generate(messages)
 
     async def test_translates_an_api_error_into_a_typed_local_error(self, tlm_client, acompletion, messages):
         # given - what litellm's openai provider raises for an unpulled model

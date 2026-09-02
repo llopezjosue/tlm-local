@@ -45,6 +45,19 @@ class EvalsNotSupportedError(Exception):
         )
 
 
+class EmptyGenerationError(Exception):
+    """The generator returned no content.
+
+    Reachable on a filtered, aborted or truncated-to-nothing completion. Named
+    here because it otherwise surfaces as a TypeError from a logging line, which
+    points at the wrong thing entirely.
+    """
+
+    def __init__(self, model: str):
+        self.model = model
+        super().__init__(f"Model {model!r} returned an empty completion. Retrying usually succeeds.")
+
+
 class JudgeModelNotLocalError(Exception):
     """The judge model tlm resolved is not an Ollama model.
 

@@ -12,6 +12,7 @@ from .client import (
 )
 from .config import LocalTLMConfig
 from .errors import (
+    EmptyGenerationError,
     EvalsNotSupportedError,
     JudgeCallFailedError,
     JudgeModelNotLocalError,
@@ -30,6 +31,7 @@ __all__ = [
     "LocalTLMConfig",
     "ModelNotPulledError",
     "OllamaUnavailableError",
+    "EmptyGenerationError",
     "EvalsNotSupportedError",
     "JudgeCallFailedError",
     "JudgeModelNotLocalError",

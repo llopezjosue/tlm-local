@@ -22,6 +22,7 @@ from tlm.config.schema import Config
 from tlm.types import Eval
 
 from .errors import (
+    EmptyGenerationError,
     EvalsNotSupportedError,
     JudgeCallFailedError,
     JudgeModelNotLocalError,
@@ -177,6 +178,11 @@ class LocalTLM:
 
         raw_response = response.model_dump()
         answer = raw_response["choices"][0]["message"]["content"]
+        # Same guard as score() puts on a missing trust_score, for the same
+        # reason: without it an empty completion dies as a TypeError raised by
+        # the logging line below, naming the wrong culprit.
+        if not answer:
+            raise EmptyGenerationError(model)
         perplexity = _mean_token_probability(raw_response)
         logger.debug("generate: got %d chars, perplexity=%s", len(answer), perplexity)
         return Generation(

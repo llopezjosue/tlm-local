@@ -20,6 +20,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from tlm_local import (
     VALIDATED_QUALITY_PRESETS,
+    EmptyGenerationError,
     JudgeCallFailedError,
     LocalTLM,
     ModelNotPulledError,
@@ -160,7 +161,7 @@ async def chat(payload: ChatRequest) -> ChatResponse:
                 reasoning_effort=payload.reasoning_effort,
                 similarity_measure=payload.similarity_measure,
             )
-    except (OllamaUnavailableError, ModelNotPulledError, JudgeCallFailedError) as e:
+    except (OllamaUnavailableError, ModelNotPulledError, JudgeCallFailedError, EmptyGenerationError) as e:
         logger.error("Chat request failed: %s", e)
         raise HTTPException(status_code=503, detail=_user_facing_error(e)) from e
     except Exception:
@@ -208,6 +209,8 @@ def _user_facing_error(e: Exception) -> str:
     if isinstance(e, ModelNotPulledError):
         bare_model = e.model.split("/", 1)[-1]
         return f"Model '{e.model}' is not available locally. Run `ollama pull {bare_model}`."
+    if isinstance(e, EmptyGenerationError):
+        return "The model returned an empty answer. This is usually transient, please try again."
     if isinstance(e, JudgeCallFailedError):
         # Transient by nature (a judge call dropped, the model got evicted), so
         # the message says to retry rather than reporting a broken setup.
