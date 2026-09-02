@@ -3,13 +3,18 @@ SYSTEM_PROMPT, see app.config) and attaches a TLM trustworthiness score. All
 Ollama/tlm plumbing and error translation live in the tlm_local package;
 this module only wires it up and owns the user-facing messages.
 """
-from __future__ import annotations
+from __future__ import annotations  # noqa: I001
 
 import asyncio
 import json
 import logging
 import time
 
+# The I001 ignore above guards this order: tlm_local must be imported before
+# app.config, which reads SYSTEM_PROMPT out of the environment that tlm_local's
+# import loads .env into. Sorting alphabetically puts app first and silently
+# drops the persona back to the generic default. tlm_local/pyproject.toml and
+# scripts/ruff.toml carry the same ignore for the same reason.
 from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
