@@ -172,7 +172,10 @@ async def chat(payload: ChatRequest) -> ChatResponse:
 
     trust_label = label_for_score(score_result.trust_score)
     duration_s = time.monotonic() - start
-    _log_score(
+    # Off the loop: a blocking open/write in a coroutine stalls every other
+    # request, and the log line is not worth that even at one line per minute.
+    await asyncio.to_thread(
+        _log_score,
         question,
         generation.answer,
         score_result.trust_score,
