@@ -30,6 +30,25 @@ class TestTranslateOllamaError:
         # then
         assert isinstance(result, OllamaUnavailableError)
 
+    def test_returns_none_when_the_failure_cannot_be_named(self):
+        """The reason this returns None rather than guessing: a request Ollama
+        understood and refused is not the server being down, and saying so
+        sends the reader to check something that was never broken.
+        """
+        # given - a context longer than the model's window: Ollama is up and
+        # answering, it just refused this request
+        error = _FakeAPIError("litellm.BadRequestError: OpenAIException - context length exceeded")
+
+        # when / then
+        assert translate_ollama_error(error, "ollama/foo") is None
+
+    def test_a_timeout_counts_as_unavailable(self):
+        # given
+        error = _FakeAPIError("litellm.APIConnectionError: Request timed out.")
+
+        # when / then
+        assert isinstance(translate_ollama_error(error, "ollama/foo"), OllamaUnavailableError)
+
     def test_not_found_check_is_case_insensitive(self):
         # given
         error = _FakeAPIError("Model 'foo' Not Found")

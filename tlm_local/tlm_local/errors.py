@@ -139,8 +139,34 @@ class JudgeCallFailedError(Exception):
         )
 
 
-def translate_ollama_error(error: APIError, model: str) -> Exception:
+# Substrings that identify a transport failure rather than a rejected request.
+# Matched against the message because the exception type does not separate the
+# two: see this module's docstring.
+_UNREACHABLE_MARKERS = (
+    "connection error",
+    "connection refused",
+    "failed to connect",
+    "connect call failed",
+    "max retries",
+    "timed out",
+    "timeout",
+)
+
+
+def translate_ollama_error(error: APIError, model: str) -> Exception | None:
+    """Name an Ollama failure, or return None when it cannot be named.
+
+    Returning None matters as much as the two hits. Anything reaching this
+    function used to come back as OllamaUnavailableError, so a request Ollama
+    understood and refused - a context longer than the model's window, a
+    parameter it rejects, a 500 from the model itself - was reported as "is
+    the server running?", sending the reader to check a server that was never
+    down. The caller re-raises the original error instead, which says less but
+    says nothing false.
+    """
     message = str(error).lower()
     if "not found" in message:
         return ModelNotPulledError(model)
-    return OllamaUnavailableError()
+    if any(marker in message for marker in _UNREACHABLE_MARKERS):
+        return OllamaUnavailableError()
+    return None

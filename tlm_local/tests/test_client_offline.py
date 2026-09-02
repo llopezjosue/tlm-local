@@ -318,6 +318,19 @@ class TestGenerateRouting:
         with pytest.raises(OllamaUnavailableError):
             await tlm_client.generate(messages)
 
+    async def test_an_unnameable_api_error_surfaces_unchanged(self, tlm_client, acompletion, messages):
+        """Ollama answered and refused the request, so reporting it as "the
+        server is unreachable" would name a cause that is not there.
+        """
+        # given
+        acompletion.side_effect = _FakeOllamaAPIError(
+            "litellm.BadRequestError: OpenAIException - context length exceeded"
+        )
+
+        # when / then - the original error, not a typed local one
+        with pytest.raises(APIError, match="context length"):
+            await tlm_client.generate(messages)
+
 
 class TestGenerateAndScore:
     async def test_passes_the_generated_perplexity_through_to_the_judge(

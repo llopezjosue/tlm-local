@@ -203,6 +203,11 @@ class LocalTLM:
             )
         except APIError as e:
             translated = translate_ollama_error(e, model)
+            if translated is None:
+                # Not a failure this package can name; relabelling it would
+                # point the reader at the wrong cause.
+                logger.warning("generate failed for model=%s with an unrecognized API error: %s", model, e)
+                raise
             logger.warning("generate failed for model=%s: %s", model, translated)
             raise translated from e
 
