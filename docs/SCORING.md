@@ -13,11 +13,11 @@ What the number is made of, and what you cannot conclude from it. Verified again
 
 `tlm` averages five weighted sub-scores. A signal that was not computed is dropped and
 the average renormalizes over the rest, so absent signals are ignored rather than
-penalized — hence the 70/30 at `medium`, where only self-reflection (weight 0.47) and
+penalized, hence the 70/30 at `medium`, where only self-reflection (weight 0.47) and
 perplexity (0.20) survive: 0.47/0.67 and 0.20/0.67.
 
 Moving to `high` is therefore **not** "the same score, stricter". A third of the weight
-shifts onto a different question — does the model answer the same way twice — so a
+shifts onto a different question, whether the model answers the same way twice, so a
 correct but freely worded answer can lose points with no error detected. Measured here:
 a good answer went from ~0.9 to ~0.72.
 
@@ -29,8 +29,9 @@ adversarial argument, binary correctness, graded trustworthiness, claim-by-claim
 correctness), maps each to 0-1 and takes a plain mean.
 
 All six interrogate **the same model**, so they do not vote independently. On a
-systematic error — the generator wrong in the same way with the same confidence every
-time — the six prompts reproduce the same misjudgement and averaging corrects nothing.
+systematic error, where the generator is wrong in the same way with the same
+confidence every time, the six prompts reproduce that misjudgement and averaging
+corrects nothing.
 That is why scaling the judge up fixed the false negative recorded in this project (an
 answer confusing grams with kilograms scored 0.842 "Reliable" under `qwen2.5:7b`, 0.342
 under `qwen2.5:14b`) while sampling more would not have.
@@ -49,7 +50,7 @@ preset everyone thinks of:
 | **The judge model** | two answers with real errors: 0.842 and 0.769 under `qwen2.5:7b`, 0.342 and 0.525 under `qwen2.5:14b` |
 | **The generator model** | perplexity is its confidence in its own tokens, ~30 % of the score at `medium` |
 | **`quality_preset`** | a good answer, ~0.9 at `medium`, ~0.72 at `high` |
-| **`reasoning_effort`** | anything but `none` sends the judge a prompt that reasons before rating, changing its output distribution — untested here |
+| **`reasoning_effort`** | anything but `none` sends the judge a prompt that reasons before rating, changing its output distribution. Untested here |
 | **Your questions and domain** | the judge's reliability is not uniform across subjects |
 
 [`scripts/calibrate.py`](../scripts/calibrate.py) derives thresholds for your own

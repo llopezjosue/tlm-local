@@ -17,7 +17,7 @@ what actually moves the score.
 | `similarity_measure` | Inert below `quality_preset=high`: it only affects the consistency signal, which runs 0 completions at `medium`. The `embedding_*` values are the one code path in `tlm` that calls hosted OpenAI |
 | `constrain_outputs` | Works. Multiple-choice and classification workflows only |
 | `evals` | **Raises `EvalsNotSupportedError`.** Broken upstream: the pipeline factory builds `SemanticEvaluationScoreGenerator` with a `model=` argument the component does not accept. Reproducible with a bare `TLM().score(evals=[...])` |
-| `context` | **Raises `RagNotSupportedError`.** A non-`None` context selects the RAG workflow, which injects its own default evals and hits the same bug — so it fails even with no evals passed |
+| `context` | **Raises `RagNotSupportedError`.** A non-`None` context selects the RAG workflow, which injects its own default evals and hits the same bug , so it fails even with no evals passed |
 
 ## The escape hatch
 

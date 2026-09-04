@@ -23,8 +23,8 @@ Enough that the wrapper is worth having. Seven non-obvious pitfalls, each found 
 
 Worth knowing about, once you are running:
 
-- [docs/SCORING.md](docs/SCORING.md) — how to read the number: what contributes at each preset, why a threshold does not transfer between configurations, and the two things the score will not tell you.
-- [docs/SAFETY_NOTES.md](docs/SAFETY_NOTES.md) — the risks found by review and left unfixed on purpose. The first one is measured: a wrong answer can be pushed across the Reliable threshold by text placed in the question.
+- [docs/SCORING.md](docs/SCORING.md): how to read the number: what contributes at each preset, why a threshold does not transfer between configurations, and the two things the score will not tell you.
+- [docs/SAFETY_NOTES.md](docs/SAFETY_NOTES.md): the risks found by review and left unfixed on purpose. The first one is measured: a wrong answer can be pushed across the Reliable threshold by text placed in the question.
 - [scripts/calibrate.py](scripts/calibrate.py) derives trust-label thresholds for **your** configuration. This repo ships none on purpose, because none would transfer: a cut-off belongs to a generator, a judge, a preset and a domain, and swapping the judge alone moved two answers from 0.842 to 0.342 here.
 
 Not an official Cleanlab project, see [Relationship to cleanlab/tlm](#relationship-to-cleanlabtlm).
@@ -91,7 +91,7 @@ If you run Ollama in a container, check it can actually reach your accelerator. 
 
 ### Running the tests
 
-67 tests, none of which need Ollama or a `.env` — the integration tests that do skip
+67 tests, none of which need Ollama or a `.env`. The integration tests that do skip
 themselves. Useful for checking the wrapper on a machine before pulling any model:
 
 ```bash

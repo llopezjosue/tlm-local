@@ -11,14 +11,14 @@ are marked as such. What is *not* a problem here, checked rather than assumed: n
 litellm); no deserialisation of untrusted data. `.env` is gitignored and no key of any
 kind is needed at runtime.
 
-## 1. The trust score can be steered by the text it is scoring — measured
+## 1. The trust score can be steered by the text it is scoring, measured
 
 The user's question reaches the judge. `LocalTLM.score()` passes the whole `messages`
 list to `TLM.score()`, and each of the six self-reflection templates embeds it in the
 judge prompt alongside the answer (see [SCORING.md](SCORING.md) for the six criteria).
 The judge is an instruction-following model reading attacker-supplied text.
 
-So a question can carry text aimed at the judge rather than at the generator — the
+So a question can carry text aimed at the judge rather than at the generator, the
 familiar prompt-injection shape, except the target is the component whose whole job is to
 say whether the output can be trusted. A successful steer does not produce a wrong
 answer; it produces a wrong answer **labelled Reliable**, which is worse, because the
@@ -70,9 +70,9 @@ open indefinitely, and a client that disconnects leaves the worker thread runnin
 
 This got sharper with the concurrency fix: requests now queue on a semaphore
 (`MAX_CONCURRENT_CHATS`, default 1), so one stuck request blocks every later one instead
-of just itself. Queuing is still the right trade — the alternative was judge calls
-timing out and taking whole scores down — but the failure mode moved rather than
-disappeared.
+of just itself. Queuing is still the right trade, since the alternative was judge
+calls timing out and taking whole scores down, but the failure mode moved rather
+than disappeared.
 
 Not fixed because a timeout needs a number, and the right number is not knowable without
 the calibration run: a scored request legitimately takes anywhere from about a minute to
@@ -90,7 +90,7 @@ so.
 The safety-relevant part is that the degradation is silent and in the wrong direction: the
 errors exist precisely to stop an upstream defect surfacing as an unrelated crash.
 
-Not fixed here because pinning is a scope call for this repo, not a code fix — see the
+Not fixed here because pinning is a scope call for this repo, not a code fix. See the
 project's own position on production tooling in a local POC.
 
 ## 5. Things that only matter beyond a local POC
