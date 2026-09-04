@@ -2,7 +2,7 @@
 
 [`cleanlab/tlm`](https://github.com/cleanlab/tlm) answers a question most LLM stacks leave open: **how much can you trust the answer you just got?** It hands the answer to a second model, interrogates it from six angles, folds in the generator's own confidence in its tokens, and returns a score between 0 and 1. You get to flag the answers worth checking instead of reading every one of them.
 
-It is open source and needs no Cleanlab account, but everything around it assumes hosted APIs. **This wrapper runs it entirely locally against [Ollama](https://ollama.com)** — no API key, no account, nothing leaving your machine. Two `ollama pull` commands and a `pip install`, and you are scoring answers from your own models.
+It is open source and needs no Cleanlab account, but everything around it assumes hosted APIs. **This wrapper runs it entirely locally against [Ollama](https://ollama.com)** : no API key, no account, nothing leaving your machine. Two `ollama pull` commands and a `pip install`, and you are scoring answers from your own models.
 
 ```python
 generation, score = await LocalTLM().generate_and_score(messages)
