@@ -1,21 +1,33 @@
 # tlm-local
 
-A Python wrapper for running [`cleanlab/tlm`](https://github.com/cleanlab/tlm)'s trustworthiness scoring fully locally against [Ollama](https://ollama.com): no API key, no external network call, no Cleanlab account. `tlm` is an open-source library; getting it to work correctly and safely against local models surfaced several real, non-obvious pitfalls (silent crashes, wrong configuration, missing scoring signals) that this wrapper fixes.
+[`cleanlab/tlm`](https://github.com/cleanlab/tlm) answers a question most LLM stacks leave open: **how much can you trust the answer you just got?** It hands the answer to a second model, interrogates it from six angles, folds in the generator's own confidence in its tokens, and returns a score between 0 and 1. You get to flag the answers worth checking instead of reading every one of them.
 
-That "no external network call" is enforced, not just intended. Left to itself, `tlm` falls back to a hosted `gpt-4.1-mini` judge with an `api_key` taken from `OPENAI_API_KEY`, so a misplaced `.env` silently ships your prompts and answers to OpenAI instead of failing. `LocalTLM` checks the judge model `tlm` actually resolved at construction and raises rather than let that happen. See pitfall 1 in [the package README](tlm_local/README.md).
+It is open source and needs no Cleanlab account, but everything around it assumes hosted APIs. **This wrapper runs it entirely locally against [Ollama](https://ollama.com)** — no API key, no account, nothing leaving your machine. Two `ollama pull` commands and a `pip install`, and you are scoring answers from your own models.
 
-**What this covers, so the name does not overpromise.** `tlm`'s QA scoring path: score an answer you already have, or generate and score in one call. Not all of `tlm`. Its RAG scoring and custom `evals` are broken upstream in `trustworthy-llm==0.0.3`, and raise a typed error here rather than failing obscurely; the classification, binary-classification and structured-output workflows are not wrapped, and neither is `TLM.create()`. The full list is in [Known limitations](tlm_local/README.md#known-limitations).
+```python
+generation, score = await LocalTLM().generate_and_score(messages)
+
+print(generation.answer)
+print(score.trust_score)   # 0.0-1.0
+```
+
+Go to [Running the showcase chat app](#running-the-showcase-chat-app) for a chat UI with a trust badge on every answer, or [Using the wrapper](#using-the-wrapper) to drop the package into your own project.
 
 The repo has two parts:
-- **[`tlm_local/`](tlm_local/)**, the actual deliverable: a standalone, separately-installable Python package that wraps `tlm` and fixes everything needed to run it safely against Ollama. See [its README](tlm_local/README.md) for the full list of pitfalls it handles. No knowledge of chatbots or any topic, fully reusable on its own, in any project.
-- **`backend/` + `frontend/`**, a small chat app used purely as a showcase/testbed to exercise the wrapper end-to-end. Not a product in its own right. No hardcoded persona: the assistant's topic/tone is set entirely by `SYSTEM_PROMPT` (see Configuration below).
+- **[`tlm_local/`](tlm_local/)**, the deliverable: a standalone, separately-installable package that wraps `tlm` and fixes everything needed to run it against Ollama. Not tied to chatbots or to any topic, reusable on its own.
+- **`backend/` + `frontend/`**, a small chat app that exercises the wrapper end to end. Not a product in its own right, and no hardcoded persona: `SYSTEM_PROMPT` sets the topic and tone.
 
-Not an official Cleanlab project, see [Relationship to cleanlab/tlm](#relationship-to-cleanlabtlm).
+## What running it locally actually takes
 
-Worth knowing about:
+Enough that the wrapper is worth having. Seven non-obvious pitfalls, each found by testing rather than by reading documentation: scoring that crashes on every call until one litellm flag is set, a signal that silently never arrives because the request is routed to the wrong endpoint, an event-loop conflict, and a configuration failure that sends your prompts to a hosted model without saying so. [The package README](tlm_local/README.md) lists all seven and what each one costs you.
+
+Worth knowing about, once you are running:
+
 - [docs/SCORING.md](docs/SCORING.md) — how to read the number: what contributes at each preset, why a threshold does not transfer between configurations, and the two things the score will not tell you.
 - [docs/SAFETY_NOTES.md](docs/SAFETY_NOTES.md) — the risks found by review and left unfixed on purpose. The first one is measured: a wrong answer can be pushed across the Reliable threshold by text placed in the question.
-- [scripts/calibrate.py](scripts/calibrate.py) derives trust-label thresholds for **your** configuration: it runs a question set through the wrapper and, once you have labelled the answers, sweeps candidate cut-offs and reports precision/recall plus the count of wrong answers that would be shown as trustworthy. This repo ships no calibrated thresholds on purpose, because none would transfer: a cut-off belongs to a generator, a judge, a preset and a domain, and swapping the judge alone moved two answers from 0.842 to 0.342 here. See [scripts/README.md](scripts/README.md) for the workflow.
+- [scripts/calibrate.py](scripts/calibrate.py) derives trust-label thresholds for **your** configuration. This repo ships none on purpose, because none would transfer: a cut-off belongs to a generator, a judge, a preset and a domain, and swapping the judge alone moved two answers from 0.842 to 0.342 here.
+
+Not an official Cleanlab project, see [Relationship to cleanlab/tlm](#relationship-to-cleanlabtlm).
 
 ## Using the wrapper
 
