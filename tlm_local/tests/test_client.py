@@ -1,4 +1,6 @@
+import os
 import socket
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -59,6 +61,35 @@ class TestMeanTokenProbability:
 
         # when / then
         assert _mean_token_probability(raw_response) is None
+
+
+class TestScoreDoesNotLeakEventLoops:
+    """tlm never closes the loop TLM() takes, and score() builds one per call,
+    so an unowned loop leaks descriptors until a long-lived server runs out.
+    """
+
+    @pytest.mark.skipif(not os.path.isdir("/dev/fd"), reason="no /dev/fd to count descriptors with")
+    async def test_repeated_scoring_holds_its_descriptor_count(self):
+        # given - a client whose judge call is stubbed, so this stays offline
+        client = LocalTLM(require_local_judge=False)
+        messages = [{"role": "user", "content": "hi"}]
+        raw_response = {"id": "x", "choices": [{"message": {"role": "assistant", "content": "hi"}}]}
+        fake = MagicMock()
+        fake.return_value.score.return_value = {"trustworthiness_score": 0.9}
+
+        def open_descriptors() -> int:
+            return len(os.listdir("/dev/fd"))
+
+        with patch("tlm_local.client.TLM", fake):
+            await client.score(messages, raw_response)  # warm the thread pool
+            before = open_descriptors()
+
+            # when
+            for _ in range(10):
+                await client.score(messages, raw_response)
+
+            # then
+            assert open_descriptors() == before
 
 
 class TestLocalTLMScoreValidation:

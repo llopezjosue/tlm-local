@@ -258,6 +258,9 @@ class LocalTLM:
         )
 
         def _run() -> dict:
+            # tlm never closes the loop TLM() takes, and we build one per call.
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
             tlm_instance = TLM(config=tlm_config)
             try:
                 return tlm_instance.score(
@@ -285,6 +288,9 @@ class LocalTLM:
                 if "per_field_metadata" in str(e):
                     raise JudgeCallFailedError(e) from e
                 raise
+            finally:
+                asyncio.set_event_loop(None)
+                loop.close()
 
         result = await asyncio.to_thread(_run)
         raw_score = result["trustworthiness_score"]
